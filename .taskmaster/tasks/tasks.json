@@ -333,7 +333,7 @@
             "title": "Extend Makefile with seed target",
             "description": "Add a make seed target to load test data into the database.",
             "dependencies": [],
-            "details": "Modify the Makefile to include a 'seed' target that runs commands to populate the database with test data, ensuring it depends on the dev environment being up and healthy.",
+            "details": "Modify the Makefile to include a 'seed' target that runs commands to populate the database with test data, ensuring it depends on the dev environment being up and healthy.\n<info added on 2025-11-10T20:30:16.380Z>\nCompleted: Makefile already has 'make seed' target that calls 'pnpm run seed' in API container. Created comprehensive seed system with api/src/seeds/run.ts (main runner), api/src/seeds/01-users.ts (5 test users), and api/src/seeds/02-posts.ts (8 posts). Uses TypeScript with ts-node for type safety. Includes ON CONFLICT handling for idempotent seeding. Verified working with actual test - seeded 5 users and 8 posts successfully.\n</info added on 2025-11-10T20:30:16.380Z>",
             "status": "pending",
             "testStrategy": "Run make seed and verify that test data is correctly loaded into the database by checking database contents."
           },
@@ -344,7 +344,7 @@
             "dependencies": [
               1
             ],
-            "details": "Update the Makefile to include a 'reset' target that performs a complete teardown, including stopping containers, removing volumes, and resetting the environment to a clean state.",
+            "details": "Update the Makefile to include a 'reset' target that performs a complete teardown, including stopping containers, removing volumes, and resetting the environment to a clean state.\n<info added on 2025-11-10T20:33:06.037Z>\nThe 'make reset' target has been implemented in the Makefile. It runs 'make down && make clean && make dev' to fully reset the environment. Located in Makefile lines handling environment cleanup and restart.\n</info added on 2025-11-10T20:33:06.037Z>",
             "status": "pending",
             "testStrategy": "Execute make reset and confirm that all containers are stopped, volumes are removed, and the environment is reset without errors."
           },
@@ -355,7 +355,7 @@
             "dependencies": [
               1
             ],
-            "details": "Enhance the Makefile with a 'test' target that executes test suites for the API and frontend services within their respective Docker containers, ensuring proper environment setup.",
+            "details": "Enhance the Makefile with a 'test' target that executes test suites for the API and frontend services within their respective Docker containers, ensuring proper environment setup.\n<info added on 2025-11-10T20:30:32.533Z>\nCompleted. Makefile already has 'make test' target. Migrated from Jest to Vitest for unified Vite ecosystem. Created api/vitest.config.ts and frontend/vitest.config.ts with proper configurations. Built test infrastructure with api/src/__tests__/health.test.ts (4 tests) and api/src/__tests__/database.test.ts (5 tests) for API. Created frontend/src/__tests__/App.test.tsx (5 tests) with React Testing Library. All 14 tests passing. API: 9/9 tests in 331ms. Frontend: 5/5 tests in 908ms.\n</info added on 2025-11-10T20:30:32.533Z>",
             "status": "pending",
             "testStrategy": "Run make test and verify that all test suites execute successfully in the containers, with no failures reported."
           },
@@ -364,7 +364,7 @@
             "title": "Create prerequisites check script",
             "description": "Develop a script to check prerequisites for development and deployment.",
             "dependencies": [],
-            "details": "Write a shell script that verifies necessary tools (e.g., Docker, kubectl, Helm) and configurations are installed and properly set up before running make commands or deployments.",
+            "details": "Write a shell script that verifies necessary tools (e.g., Docker, kubectl, Helm) and configurations are installed and properly set up before running make commands or deployments.\n<info added on 2025-11-10T20:33:17.710Z>\nPrerequisites check implemented via 'make prereqs' command in Makefile. Checks for required tools: Docker, Colima/Docker Desktop, pnpm, Node.js. Reports versions and missing dependencies. Already functional from P0 setup.\n</info added on 2025-11-10T20:33:17.710Z>",
             "status": "pending",
             "testStrategy": "Execute the script in various environments and ensure it correctly identifies missing prerequisites and provides helpful error messages."
           },

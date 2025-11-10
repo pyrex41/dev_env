@@ -8,9 +8,11 @@
     "dev:nodemon": "nodemon --exec 'node --inspect=0.0.0.0:9229 -r ts-node/register' src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest",
-    "migrate": "node dist/migrations/run.js",
-    "seed": "node dist/seeds/run.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "migrate": "node-pg-migrate up --database-url-var DATABASE_URL --migrations-dir src/migrations",
+    "seed": "ts-node src/seeds/run.ts",
     "lint": "eslint src --ext .ts"
   },
   "keywords": ["api", "typescript", "express"],
@@ -21,7 +23,8 @@
     "pg": "^8.11.3",
     "redis": "^4.6.12",
     "dotenv": "^16.3.1",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-pg-migrate": "^7.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
@@ -31,11 +34,11 @@
     "typescript": "^5.3.3",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.2",
-    "@types/jest": "^29.5.11",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "@types/node-pg-migrate": "^2.3.1"
   }
 }

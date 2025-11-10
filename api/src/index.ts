@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import { createClient } from 'redis';
+import path from 'path';
+import runner from 'node-pg-migrate';
 
 const app = express();
 const PORT = process.env.API_PORT || 8000;
@@ -21,6 +23,27 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+// Run database migrations
+async function runMigrations() {
+  try {
+    console.log('🔄 Running database migrations...');
+
+    await runner({
+      databaseUrl: process.env.DATABASE_URL!,
+      migrationsTable: 'pgmigrations',
+      dir: path.join(__dirname, 'migrations'),
+      direction: 'up',
+      count: Infinity,
+      log: (msg: string) => console.log(`   ${msg}`),
+    });
+
+    console.log('✓ Migrations completed successfully');
+  } catch (error) {
+    console.error('✗ Migration failed:', error);
+    throw error;
+  }
+}
 
 // Initialize connections
 async function initializeConnections() {
@@ -74,6 +97,10 @@ app.get('/api/status', (_req: Request, res: Response) => {
 
 // Start server
 async function startServer() {
+  // Run migrations first
+  await runMigrations();
+
+  // Then initialize connections
   await initializeConnections();
 
   app.listen(PORT, () => {
