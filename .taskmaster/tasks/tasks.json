@@ -16,7 +16,7 @@
             "title": "Create base project directory structure",
             "description": "Set up the initial folder layout for the project, including directories for api and frontend services.",
             "dependencies": [],
-            "details": "Initialize the project root directory and create subdirectories for 'api' and 'frontend' services. Ensure the structure supports the multi-service architecture with clear separation for each component.",
+            "details": "Initialize the project root directory and create subdirectories for 'api' and 'frontend' services. Ensure the structure supports the multi-service architecture with clear separation for each component.\n<info added on 2025-11-10T19:49:04.336Z>\nCreated docker-compose.yml with 4 services (PostgreSQL 16, Redis 7, Node/TypeScript API, React/Vite frontend). All services have health checks and proper dependency ordering. Migrated to Colima for stability.\n</info added on 2025-11-10T19:49:04.336Z>",
             "status": "pending",
             "testStrategy": "Verify that the directories exist and are empty or contain placeholder files using 'ls -la' commands."
           },
@@ -27,7 +27,7 @@
             "dependencies": [
               1
             ],
-            "details": "In the project root, create docker-compose.yml specifying services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode, include named volumes for data persistence, and set depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).",
+            "details": "In the project root, create docker-compose.yml specifying services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode, include named volumes for data persistence, and set depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).\n<info added on 2025-11-10T19:49:15.495Z>\nCreated multi-stage Dockerfiles for both API and frontend with pnpm support. API uses node:20-alpine with TypeScript, ts-node, and hot reload. Frontend uses Vite with React 18. Both have development and production targets.\n</info added on 2025-11-10T19:49:15.495Z>",
             "status": "pending",
             "testStrategy": "Run 'docker-compose config' to ensure the file parses without errors and all services are defined correctly."
           },
@@ -38,7 +38,7 @@
             "dependencies": [
               1
             ],
-            "details": "In the project root, create a Makefile with basic targets for building and running services. Also, create .env.example with placeholders for environment variables needed by the services, such as database credentials and ports.",
+            "details": "In the project root, create a Makefile with basic targets for building and running services. Also, create .env.example with placeholders for environment variables needed by the services, such as database credentials and ports.\n<info added on 2025-11-10T19:49:29.316Z>\nCompleted: Created comprehensive Makefile with 12+ commands including dev, down, logs, shell-api, shell-db, migrate, seed, test, clean, and prereqs. Auto-detects docker-compose vs docker compose. All commands use pnpm for package management.\n</info added on 2025-11-10T19:49:29.316Z>",
             "status": "pending",
             "testStrategy": "Check that Makefile can be parsed without syntax errors and .env.example contains all necessary variable placeholders."
           }

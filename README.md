@@ -4,12 +4,24 @@ Zero-to-running local development environment in under 10 minutes.
 
 ## Quick Start
 
-```bash
-# 1. Clone and enter directory
-git clone <repository-url>
-cd dev_env
+### Option 1: Interactive Setup (Recommended for First Time)
 
-# 2. Start everything
+```bash
+# Run the interactive setup script
+./setup.sh
+```
+
+The script will:
+- Check all prerequisites
+- Help install missing dependencies
+- Start Docker if needed
+- Configure your environment
+- Optionally start the services
+
+### Option 2: Manual Start (If Already Setup)
+
+```bash
+# 1. Start everything
 make dev
 ```
 
@@ -82,9 +94,48 @@ lsof -ti:3000  # or :8000, :5432, :6379
 **Problem:** Cannot connect to Docker daemon
 
 **Solution:**
-1. Start Docker Desktop
-2. Wait for it to fully initialize
-3. Run `make dev` again
+```bash
+# Start Colima
+colima start
+
+# Check status
+colima status
+
+# Then run your environment
+make dev
+```
+
+### Colima Management
+
+This project uses **Colima** instead of Docker Desktop for lightweight, CLI-based container management.
+
+**Common Commands:**
+```bash
+# Start Colima
+colima start
+
+# Stop Colima
+colima stop
+
+# Restart Colima
+colima restart
+
+# Check status
+colima status
+
+# View logs
+colima logs
+
+# Delete and recreate (cleans everything)
+colima delete && colima start --cpu 4 --memory 8 --disk 60
+```
+
+**Why Colima?**
+- 🚀 Faster and more stable than Docker Desktop
+- 💾 Uses ~1GB RAM vs Docker Desktop's 2-4GB
+- ⚡ Native Apple Silicon performance (macOS Virtualization.Framework)
+- 🔧 100% Docker CLI compatible - no changes to your workflow
+- 🆓 Free and open source
 
 ### Services Not Healthy
 
@@ -142,6 +193,12 @@ make test
 make down
 ```
 
+## Package Manager
+
+This project uses **pnpm** instead of npm for faster installs and better disk space efficiency.
+
+Inside containers, pnpm is automatically available via Node.js corepack.
+
 ## Project Structure
 
 ```
@@ -149,11 +206,13 @@ dev_env/
 ├── api/                    # Node/TypeScript API
 │   ├── src/
 │   ├── Dockerfile
-│   └── package.json
+│   ├── package.json
+│   └── pnpm-lock.yaml
 ├── frontend/               # React/TypeScript Frontend
 │   ├── src/
 │   ├── Dockerfile
-│   └── package.json
+│   ├── package.json
+│   └── pnpm-lock.yaml
 ├── k8s/                    # Kubernetes configs
 │   └── charts/wander/
 ├── docker-compose.yml      # Service definitions

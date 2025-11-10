@@ -1,11 +1,19 @@
-# 🚀 Zero to Running in 3 Steps
+# 🚀 Zero to Running in 1 Step
 
-## Prerequisites
+## Fastest Start (First Time)
 
-- Docker Desktop installed and running
-- 8GB RAM minimum
+```bash
+./setup.sh
+```
 
-## Start Development Environment
+**That's it!** The interactive script handles everything:
+- ✓ Checks prerequisites
+- ✓ Installs missing tools
+- ✓ Starts Docker
+- ✓ Configures environment
+- ✓ Starts all services
+
+## Manual Start (Already Setup)
 
 ```bash
 # Step 1: Check you're ready

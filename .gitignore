@@ -6,6 +6,10 @@ node_modules/
 api/node_modules/
 frontend/node_modules/
 
+# pnpm
+.pnpm-debug.log*
+.pnpm-store/
+
 # Build outputs
 dist/
 build/
@@ -17,6 +21,7 @@ frontend/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # OS files
 .DS_Store

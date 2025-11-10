@@ -39,7 +39,7 @@ async function initializeConnections() {
 }
 
 // Health check endpoint
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   try {
     // Check database connection
     await pool.query('SELECT 1');
@@ -64,7 +64,7 @@ app.get('/health', async (req: Request, res: Response) => {
 });
 
 // Example API endpoint
-app.get('/api/status', (req: Request, res: Response) => {
+app.get('/api/status', (_req: Request, res: Response) => {
   res.json({
     message: 'Wander API is running',
     version: '1.0.0',
