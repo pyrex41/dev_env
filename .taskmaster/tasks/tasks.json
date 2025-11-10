@@ -1,0 +1,433 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set up project structure and Docker Compose configuration",
+        "description": "Create the base project directory structure including docker-compose.yml, Makefile, .env.example, and service directories for api and frontend.",
+        "details": "Initialize the project with the specified folder structure. Create docker-compose.yml defining services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode for easy access. Include named volumes for data persistence. Ensure depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).",
+        "testStrategy": "Verify the docker-compose.yml file parses without errors using 'docker-compose config'. Check that all service directories exist and are properly structured.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create base project directory structure",
+            "description": "Set up the initial folder layout for the project, including directories for api and frontend services.",
+            "dependencies": [],
+            "details": "Initialize the project root directory and create subdirectories for 'api' and 'frontend' services. Ensure the structure supports the multi-service architecture with clear separation for each component.",
+            "status": "pending",
+            "testStrategy": "Verify that the directories exist and are empty or contain placeholder files using 'ls -la' commands."
+          },
+          {
+            "id": 2,
+            "title": "Define docker-compose.yml with all services",
+            "description": "Create the docker-compose.yml file defining services for PostgreSQL, Redis, API, and frontend with proper configurations.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the project root, create docker-compose.yml specifying services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode, include named volumes for data persistence, and set depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).",
+            "status": "pending",
+            "testStrategy": "Run 'docker-compose config' to ensure the file parses without errors and all services are defined correctly."
+          },
+          {
+            "id": 3,
+            "title": "Set up initial files: Makefile and .env.example",
+            "description": "Create the Makefile and .env.example files to support project management and environment configuration.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the project root, create a Makefile with basic targets for building and running services. Also, create .env.example with placeholders for environment variables needed by the services, such as database credentials and ports.",
+            "status": "pending",
+            "testStrategy": "Check that Makefile can be parsed without syntax errors and .env.example contains all necessary variable placeholders."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Configure PostgreSQL service with persistence",
+        "description": "Set up PostgreSQL 16 service in docker-compose.yml with persistent volume and health checks.",
+        "details": "In docker-compose.yml, define a postgres service using the official PostgreSQL 16 image. Configure a named volume for data persistence. Set environment variables for database name, user, and password from .env. Add a health check using pg_isready command. Expose port via environment variable.",
+        "testStrategy": "Run docker-compose up postgres and verify the container starts, volume persists data, and health check passes. Connect to the database using psql from host.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define PostgreSQL service in docker-compose.yml",
+            "description": "Create the postgres service entry in docker-compose.yml using the official PostgreSQL 16 image, configure a named volume for data persistence, and set environment variables for database name, user, and password sourced from .env file.",
+            "dependencies": [],
+            "details": "In the docker-compose.yml file, add a 'postgres' service section. Use 'image: postgres:16' for the official image. Define a named volume like 'postgres_data' under volumes and mount it to '/var/lib/postgresql/data' in the container. Set environment variables such as POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD using values from the .env file via ${VAR_NAME} syntax. Ensure the volume is declared at the top-level volumes section for persistence across container restarts.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up postgres and check that the container starts without errors, and verify that the volume is created and mounted correctly by inspecting the container."
+          },
+          {
+            "id": 2,
+            "title": "Add health check and port exposure for PostgreSQL service",
+            "description": "Implement a health check for the PostgreSQL service using pg_isready command and expose the database port via an environment variable.",
+            "dependencies": [
+              1
+            ],
+            "details": "Within the postgres service in docker-compose.yml, add a healthcheck section with 'test: [\"CMD-SHELL\", \"pg_isready -U ${POSTGRES_USER}\"]', set interval, timeout, retries, and start_period appropriately (e.g., interval: 10s, timeout: 5s, retries: 5, start_period: 30s). Expose the port using 'ports: - \"${POSTGRES_PORT}:5432\"' where POSTGRES_PORT is defined in .env. This ensures the service is accessible and healthy before dependent services start.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up postgres and use docker-compose ps to verify the health check status. Attempt to connect to the exposed port using psql from the host to confirm accessibility and data persistence."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Configure Redis service",
+        "description": "Set up Redis 7 service in docker-compose.yml with health checks.",
+        "details": "In docker-compose.yml, define a redis service using the official Redis 7 image. Configure a named volume for persistence if needed. Set environment variables for password from .env. Add a health check using redis-cli ping. Expose port via environment variable.",
+        "testStrategy": "Run docker-compose up redis and verify the container starts, health check passes, and can connect using redis-cli from host.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Redis service in docker-compose.yml",
+            "description": "Add a redis service to the docker-compose.yml file using the official Redis 7 image, configure a named volume for data persistence, set environment variables for password from .env file, add a health check using redis-cli ping, and expose the port via an environment variable.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the docker-compose.yml file, under the services section, add a 'redis' service. Use 'image: redis:7' for the official Redis 7 image. Configure a named volume like 'redis_data' mapped to '/data' inside the container for persistence. Set environment variables such as 'REDIS_PASSWORD' sourced from the .env file. Add a healthcheck with 'test: redis-cli ping', interval, timeout, retries, and start_period. Expose the port using an environment variable like 'REDIS_PORT' mapped to the container's 6379 port. Ensure the service is properly indented and formatted.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up redis and verify the container starts successfully, the health check passes by checking container logs, and connection is possible using redis-cli from the host with the configured password."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Configure Node/TypeScript API service",
+        "description": "Set up the API service with hot reload, debug port, and dependencies.",
+        "details": "In docker-compose.yml, define an api service using a multi-stage Dockerfile in api/ directory. Mount source code as volumes for hot reload. Expose debug port 9229. Set environment variables from .env. Ensure it depends on postgres and redis being healthy. Include database migrations to run automatically on startup.",
+        "testStrategy": "Run docker-compose up api and verify the service starts, debug port is accessible, hot reload works on code changes, and API endpoints respond correctly.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create multi-stage Dockerfile for Node/TypeScript API service",
+            "description": "Develop a multi-stage Dockerfile in the api/ directory to build and run the Node/TypeScript API service efficiently.",
+            "dependencies": [],
+            "details": "Use a multi-stage build with a base stage for dependencies, a build stage for compiling TypeScript, and a production stage for running the app. Include necessary Node.js versions and package installations.",
+            "status": "pending",
+            "testStrategy": "Build the Docker image and verify it runs without errors, checking that the API service starts correctly."
+          },
+          {
+            "id": 2,
+            "title": "Configure volumes for hot reload in API service",
+            "description": "Set up volume mounts in docker-compose.yml to enable hot reloading of source code changes for the API service.",
+            "dependencies": [
+              1
+            ],
+            "details": "In docker-compose.yml, mount the api/ source directory as a volume to the container's working directory. Ensure nodemon or similar is configured in the app to watch for changes and restart the server automatically.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up and modify a source file; verify that the API service restarts and reflects changes without rebuilding the image."
+          },
+          {
+            "id": 3,
+            "title": "Set up debug port and environment variables for API service",
+            "description": "Configure the API service in docker-compose.yml to expose debug port 9229 and load environment variables from .env file.",
+            "dependencies": [
+              1
+            ],
+            "details": "Expose port 9229 in the docker-compose service definition for Node.js debugging. Set environment variables using env_file directive pointing to .env. Ensure the service depends on postgres and redis health checks.",
+            "status": "pending",
+            "testStrategy": "Start the service and attach a debugger to port 9229; confirm environment variables are loaded by checking logs or API responses."
+          },
+          {
+            "id": 4,
+            "title": "Integrate database migrations on startup for API service",
+            "description": "Ensure database migrations run automatically when the API service starts up in docker-compose.yml.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Add a command or entrypoint in the Dockerfile or docker-compose to run migration scripts (e.g., using a tool like TypeORM or Knex) before starting the API server. Ensure it waits for postgres to be healthy.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up and check database schema; verify migrations have applied by querying the database or checking API functionality that relies on migrated tables."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Configure React/TypeScript frontend service",
+        "description": "Set up the frontend service with Vite dev server and hot reload.",
+        "details": "In docker-compose.yml, define a frontend service using a Dockerfile in frontend/ directory. Mount source code as volumes for hot reload. Use Vite dev server. Set environment variables from .env. Ensure it depends on api being healthy. Expose port via environment variable.",
+        "testStrategy": "Run docker-compose up frontend and verify the service starts, Vite dev server runs, hot reload works on code changes, and frontend is accessible at the configured URL.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build Dockerfile for React/TypeScript frontend service",
+            "description": "Create a Dockerfile in the frontend/ directory to set up the React/TypeScript application with Vite.",
+            "dependencies": [],
+            "details": "Use a multi-stage build if necessary, install dependencies, copy source code, and configure the Vite build process for development mode.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Configure volume mounting for hot reload",
+            "description": "Set up volume mounting in docker-compose.yml to enable hot reload for the frontend service.",
+            "dependencies": [
+              1
+            ],
+            "details": "Mount the frontend source code directory as a volume in the docker-compose.yml service definition to allow real-time code changes without rebuilding the container.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Configure Vite dev server, environment variables, and API dependency",
+            "description": "Configure the Vite dev server with environment variables and ensure the frontend service depends on the API being healthy.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "In docker-compose.yml, set environment variables from .env file, expose the port via environment variable, and add a dependency on the api service health check to ensure it starts after the API is ready.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement Makefile commands for local development",
+        "description": "Create Makefile with dev, down, logs commands and auto-generate .env.",
+        "details": "Write Makefile with targets: dev (docker-compose up with health checks), down (docker-compose down --volumes), logs (docker-compose logs -f). Include logic to copy .env.example to .env if missing. Add colored output and progress indicators. Ensure dev waits for all services to be healthy before displaying success message.",
+        "testStrategy": "Run make dev and verify all services start in order, health checks pass, and 'Environment ready!' is displayed. Test make down removes containers and volumes. Test make logs tails logs correctly.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement core Makefile targets (dev, down, logs)",
+            "description": "Create the fundamental targets in the Makefile: dev for docker-compose up with health checks, down for docker-compose down --volumes, and logs for docker-compose logs -f.",
+            "dependencies": [],
+            "details": "Write the Makefile with these three targets, ensuring the dev target waits for all services to be healthy before displaying a success message. Use docker-compose commands appropriately for each target.",
+            "status": "pending",
+            "testStrategy": "Run make dev and verify services start in order with health checks passing; test make down removes containers and volumes; test make logs tails logs correctly."
+          },
+          {
+            "id": 2,
+            "title": "Add .env file auto-generation logic",
+            "description": "Incorporate logic into the Makefile to automatically copy .env.example to .env if the .env file is missing.",
+            "dependencies": [],
+            "details": "Add a check at the beginning of relevant targets (like dev) to copy .env.example to .env if it does not exist, ensuring environment variables are set up before running docker-compose commands.",
+            "status": "pending",
+            "testStrategy": "Run make dev without an existing .env file and verify that .env is created by copying from .env.example."
+          },
+          {
+            "id": 3,
+            "title": "Implement colored output and progress indicators",
+            "description": "Enhance the Makefile with colored terminal output and progress indicators to improve user experience during command execution.",
+            "dependencies": [],
+            "details": "Use shell scripting with ANSI color codes for colored output (e.g., green for success, red for errors) and add progress messages like 'Starting services...' or 'Environment ready!' to provide feedback during the dev command execution.",
+            "status": "pending",
+            "testStrategy": "Execute make dev and observe that output is colored appropriately and progress indicators are displayed, such as 'Environment ready!' after health checks pass."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Handle configuration with .env files",
+        "description": "Set up .env.example with all required variables and mock secrets.",
+        "details": "Create .env.example with variables for ports, database credentials, Redis password, API secrets, etc. Include 'CHANGE ME' indicators for secrets. Ensure .env is gitignored. Use environment variables in docker-compose.yml for configuration.",
+        "testStrategy": "Verify .env.example is committed and contains all necessary variables. Check that docker-compose uses the variables correctly by inspecting running containers.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create .env.example file with required variables and ensure .env is gitignored",
+            "description": "Define all necessary environment variables in .env.example, including ports, database credentials, Redis password, API secrets, and other configurations. Mark secrets with 'CHANGE ME' indicators. Ensure the .env file is added to .gitignore to prevent committing sensitive data. Verify that docker-compose.yml properly references these environment variables for service configuration.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the project root, create a .env.example file listing all required environment variables based on the services defined in docker-compose.yml (e.g., API_PORT, DB_HOST, DB_USER, DB_PASSWORD, REDIS_PASSWORD, API_SECRET, etc.). Use placeholder values like 'CHANGE ME' for sensitive secrets. Add .env to the .gitignore file if not already present. Update docker-compose.yml to use these variables via ${VAR_NAME} syntax for services like postgres, redis, api, and frontend. Ensure the file is committed to version control while .env remains local.",
+            "status": "pending",
+            "testStrategy": "Check that .env.example exists in the repository and contains all variables referenced in docker-compose.yml. Confirm .env is listed in .gitignore. Run docker-compose config to validate that environment variables are resolved correctly without errors."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Add health checks and dependency ordering",
+        "description": "Implement health checks for all services and ensure proper startup ordering.",
+        "details": "Define healthcheck sections in docker-compose.yml for each service (postgres, redis, api, frontend) using appropriate commands. Use depends_on with condition: service_healthy. For api, include a health endpoint that checks database connectivity.",
+        "testStrategy": "Run make dev and observe that services start in order (DB/Redis first, then API, then Frontend). Verify health checks pass and failure states are detected.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define health checks in docker-compose.yml for all services",
+            "description": "Add healthcheck sections to postgres, redis, api, and frontend services in docker-compose.yml using appropriate commands. For api, ensure a health endpoint is implemented that checks database connectivity.",
+            "dependencies": [],
+            "details": "For postgres, use pg_isready command. For redis, use redis-cli ping. For api, implement a health endpoint (e.g., /health) that verifies database connectivity. For frontend, use a simple HTTP check or curl to the service port. Ensure all health checks are configured with appropriate intervals, retries, and timeouts.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up and verify that health checks pass for each service using docker-compose ps or docker inspect."
+          },
+          {
+            "id": 2,
+            "title": "Configure depends_on with service_healthy conditions for startup ordering",
+            "description": "Set up depends_on clauses in docker-compose.yml with condition: service_healthy to ensure services start in the correct order: postgres and redis first, then api, then frontend.",
+            "dependencies": [],
+            "details": "In the docker-compose.yml file, configure the api service to depend on postgres and redis with condition: service_healthy. Configure the frontend service to depend on api with condition: service_healthy. This ensures that each service waits for its dependencies to be healthy before starting.",
+            "status": "pending",
+            "testStrategy": "Execute make dev and observe the startup logs to confirm services start in order (DB/Redis first, then API, then Frontend) and that health checks are respected."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement P1 features: seeding, testing, and deployment setup",
+        "description": "Add make seed, make test, and basic K8s deployment structure.",
+        "details": "Extend Makefile with seed (load test data), reset (full teardown), test (run test suites). Create prerequisites check script. For deployment, set up k8s/charts/wander/ with Chart.yaml, values files, and basic templates for api, frontend, postgres, redis, ingress. Include make deploy-staging using Helm.",
+        "testStrategy": "Test make seed loads data correctly. Run make test and verify test suites execute in containers. For deployment, validate Helm chart renders correctly and make deploy-staging deploys to a test cluster.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extend Makefile with seed target",
+            "description": "Add a make seed target to load test data into the database.",
+            "dependencies": [],
+            "details": "Modify the Makefile to include a 'seed' target that runs commands to populate the database with test data, ensuring it depends on the dev environment being up and healthy.",
+            "status": "pending",
+            "testStrategy": "Run make seed and verify that test data is correctly loaded into the database by checking database contents."
+          },
+          {
+            "id": 2,
+            "title": "Extend Makefile with reset target",
+            "description": "Add a make reset target for full teardown of the environment.",
+            "dependencies": [
+              1
+            ],
+            "details": "Update the Makefile to include a 'reset' target that performs a complete teardown, including stopping containers, removing volumes, and resetting the environment to a clean state.",
+            "status": "pending",
+            "testStrategy": "Execute make reset and confirm that all containers are stopped, volumes are removed, and the environment is reset without errors."
+          },
+          {
+            "id": 3,
+            "title": "Extend Makefile with test target",
+            "description": "Add a make test target to run test suites in containers.",
+            "dependencies": [
+              1
+            ],
+            "details": "Enhance the Makefile with a 'test' target that executes test suites for the API and frontend services within their respective Docker containers, ensuring proper environment setup.",
+            "status": "pending",
+            "testStrategy": "Run make test and verify that all test suites execute successfully in the containers, with no failures reported."
+          },
+          {
+            "id": 4,
+            "title": "Create prerequisites check script",
+            "description": "Develop a script to check prerequisites for development and deployment.",
+            "dependencies": [],
+            "details": "Write a shell script that verifies necessary tools (e.g., Docker, kubectl, Helm) and configurations are installed and properly set up before running make commands or deployments.",
+            "status": "pending",
+            "testStrategy": "Execute the script in various environments and ensure it correctly identifies missing prerequisites and provides helpful error messages."
+          },
+          {
+            "id": 5,
+            "title": "Set up Kubernetes Helm chart structure",
+            "description": "Create basic K8s deployment structure with Helm chart for all services.",
+            "dependencies": [
+              4
+            ],
+            "details": "Set up k8s/charts/wander/ directory with Chart.yaml, values files, and templates for api, frontend, postgres, redis, and ingress. Include a make deploy-staging target using Helm to deploy to a staging environment.",
+            "status": "pending",
+            "testStrategy": "Validate the Helm chart renders correctly using helm template, and test make deploy-staging by deploying to a test cluster and verifying all services are running."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Create documentation and developer experience enhancements",
+        "description": "Write README, troubleshooting docs, and add colored output/progress indicators.",
+        "details": "Create README.md with quickstart (<50 lines), prerequisites, and common troubleshooting (port conflicts, Docker issues). Add colored console output and progress indicators to Makefile. Display service URLs after successful startup. Document secret management strategy.",
+        "testStrategy": "Follow README to set up environment and verify it works in <10 minutes. Check that error messages are clear and troubleshooting covers common issues.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          7,
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Write README.md with quickstart and troubleshooting",
+            "description": "Create a comprehensive README.md file that includes a quickstart guide under 50 lines, lists prerequisites, covers common troubleshooting issues like port conflicts and Docker problems, and documents the secret management strategy.",
+            "dependencies": [
+              6,
+              7,
+              9
+            ],
+            "details": "Ensure the README.md is placed in the project root. The quickstart section should guide users through setting up the environment in under 10 minutes. Include prerequisites such as Docker, Docker Compose, and Node.js versions. The troubleshooting section must address port conflicts (e.g., checking for occupied ports), Docker issues (e.g., permission errors or image pulls), and secret management (e.g., how to handle .env files securely). Keep the entire file concise yet informative.",
+            "status": "pending",
+            "testStrategy": "Follow the README instructions to set up the environment and verify it completes in under 10 minutes, with clear error messages and effective troubleshooting guidance."
+          },
+          {
+            "id": 2,
+            "title": "Enhance Makefile with colored output, progress indicators, and service URL display",
+            "description": "Modify the existing Makefile to add colored console output, progress indicators during startup, and display service URLs after successful startup.",
+            "dependencies": [
+              6,
+              7,
+              9
+            ],
+            "details": "Update the Makefile targets, particularly the 'dev' command, to incorporate ANSI color codes for output (e.g., green for success, red for errors). Implement progress indicators such as loading bars or status messages during service health checks. After all services are healthy, display the URLs for the API and frontend services (e.g., http://localhost:3000 for frontend, http://localhost:8000 for API). Ensure compatibility with existing logic for copying .env.example and health checks.",
+            "status": "pending",
+            "testStrategy": "Run 'make dev' and observe colored output, progress indicators during startup, and verify that service URLs are displayed upon successful initialization, with all services running correctly."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-10T17:48:41.718Z",
+      "updated": "2025-11-10T17:48:41.718Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
