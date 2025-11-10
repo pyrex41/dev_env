@@ -85,7 +85,7 @@ brew install --cask docker
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Frontend | http://localhost:3000 | React + TypeScript + Vite |
+| Frontend | http://localhost:3000 | React + TypeScript + Vite + Tailwind CSS v4 |
 | API | http://localhost:8000 | Node + TypeScript + Express |
 | API Health | http://localhost:8000/health | Health check endpoint |
 | PostgreSQL | localhost:5432 | Database |
@@ -530,14 +530,26 @@ docker push registry.fly.io/<org>/wander-api:latest
 ## Secret Management
 
 **Local Development:**
-- Use `.env` file (gitignored)
-- Mock secrets are fine
+- Use `.env` file (gitignored, auto-created from `.env.example` with `CHANGE_ME` placeholders)
+- Run `./scripts/validate-secrets.sh` to check for unresolved placeholders
+- Mock secrets are fine for dev; update for staging/prod
 
 **Kubernetes (Staging/Production):**
-- Use External Secrets Operator
-- Or Sealed Secrets
-- Or cloud provider secret managers (GCP Secret Manager, AWS Secrets Manager)
-- Never commit real secrets
+- Use External Secrets Operator (recommended for gitops)
+- Or Sealed Secrets (encrypt secrets in repo)
+- Or cloud provider secret managers (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault)
+- Example Sealed Secret for JWT_SECRET:
+  ```
+  apiVersion: bitnami.com/v1alpha1
+  kind: SealedSecret
+  metadata:
+    name: wander-api-secrets
+    namespace: production
+  spec:
+    encryptedData:
+      JWT_SECRET: AgC2... (encrypted value)
+  ```
+- Never commit real secrets; use `helm --set` only for testing
 
 ## Next Steps
 

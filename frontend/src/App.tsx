@@ -29,7 +29,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🚀 Wander Dev Environment</h1>
+        <h1 className="text-3xl font-bold text-blue-600">🚀 Wander Dev Environment</h1>
         <p>Your development environment is up and running!</p>
 
         <div className="status-card">
