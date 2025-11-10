@@ -1,7 +1,7 @@
-# Fly.io Minimal Test Machine
-# Lean Linux environment for testing setup scripts via SSH
-# Region: DFW (Dallas), single machine, auto-stopped when idle
-# NO PERSISTENT STORAGE - Fresh start every time
+# fly.toml app configuration file generated for wander-test-minimal on 2025-11-10T16:57:27-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
 app = 'wander-test-minimal'
 primary_region = 'dfw'
@@ -11,8 +11,7 @@ primary_region = 'dfw'
 
 [http_service]
   internal_port = 22
-  force_https = false
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 

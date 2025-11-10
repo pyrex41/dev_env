@@ -40,50 +40,165 @@ async function runMigrations() {
 
     console.log('✓ Migrations completed successfully');
   } catch (error) {
-    console.error('✗ Migration failed:', error);
+    console.error('\n❌ Database migration failed');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    if (error instanceof Error) {
+      console.error('Error:', error.message);
+
+      console.error('\n💡 Troubleshooting:');
+      console.error('  1. Check the migration files in api/src/migrations/');
+      console.error('  2. View detailed logs:');
+      console.error('     make logs-api');
+      console.error('  3. Rollback the last migration:');
+      console.error('     make migrate-rollback');
+      console.error('  4. Reset the database (WARNING: destroys data):');
+      console.error('     make reset');
+    }
+
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     throw error;
   }
+}
+
+// Retry helper function
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  options: {
+    retries: number;
+    delay: number;
+    serviceName: string;
+  }
+): Promise<T> {
+  const { retries, delay, serviceName } = options;
+  let lastError: Error | unknown;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        console.log(`⚠ ${serviceName} connection failed (attempt ${attempt}/${retries}). Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 // Initialize connections
 async function initializeConnections() {
   try {
-    // Test PostgreSQL connection
-    await pool.query('SELECT NOW()');
+    // Test PostgreSQL connection with retries
+    await retryWithBackoff(
+      async () => {
+        await pool.query('SELECT NOW()');
+      },
+      {
+        retries: 5,
+        delay: 2000,
+        serviceName: 'PostgreSQL'
+      }
+    );
     console.log('✓ Connected to PostgreSQL');
 
-    // Connect to Redis
-    await redisClient.connect();
-    console.log('✓ Connected to Redis');
+    // Connect to Redis with retries (but don't fail if it's unavailable)
+    try {
+      await retryWithBackoff(
+        async () => {
+          await redisClient.connect();
+        },
+        {
+          retries: 3,
+          delay: 1000,
+          serviceName: 'Redis'
+        }
+      );
+      console.log('✓ Connected to Redis');
+    } catch (redisError) {
+      console.warn('⚠ Redis connection failed. Continuing without cache...');
+      console.warn('  To fix: Check if Redis is running and credentials are correct');
+      // Continue without Redis - graceful degradation
+    }
   } catch (error) {
-    console.error('Failed to initialize connections:', error);
+    console.error('\n❌ Failed to initialize database connection');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    if (error instanceof Error) {
+      console.error('Error:', error.message);
+
+      // Provide helpful troubleshooting hints
+      if (error.message.includes('ECONNREFUSED')) {
+        console.error('\n💡 Troubleshooting:');
+        console.error('  1. Check if PostgreSQL container is running:');
+        console.error('     docker ps | grep postgres');
+        console.error('  2. Verify connection string in .env file');
+        console.error('  3. Try restarting services:');
+        console.error('     make reset');
+      } else if (error.message.includes('password authentication failed')) {
+        console.error('\n💡 Troubleshooting:');
+        console.error('  1. Check POSTGRES_PASSWORD in .env file');
+        console.error('  2. Ensure .env doesn\'t have CHANGE_ME values:');
+        console.error('     make validate-secrets');
+      } else if (error.message.includes('database') && error.message.includes('does not exist')) {
+        console.error('\n💡 Troubleshooting:');
+        console.error('  1. Check POSTGRES_DB in .env file');
+        console.error('  2. Try resetting the environment:');
+        console.error('     make reset');
+      }
+    }
+
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     process.exit(1);
   }
 }
 
 // Health check endpoint
 app.get('/health', async (_req: Request, res: Response) => {
+  const health: {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    timestamp: string;
+    services: {
+      database: string;
+      redis: string;
+    };
+  } = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    services: {
+      database: 'unknown',
+      redis: 'unknown',
+    },
+  };
+
   try {
-    // Check database connection
+    // Check database connection (critical)
     await pool.query('SELECT 1');
-
-    // Check Redis connection
-    await redisClient.ping();
-
-    res.status(200).json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'connected',
-        redis: 'connected',
-      },
-    });
+    health.services.database = 'connected';
   } catch (error) {
-    res.status(503).json({
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    health.status = 'unhealthy';
+    health.services.database = 'disconnected';
+    return res.status(503).json(health);
   }
+
+  try {
+    // Check Redis connection (non-critical)
+    if (redisClient.isOpen) {
+      await redisClient.ping();
+      health.services.redis = 'connected';
+    } else {
+      health.services.redis = 'disconnected';
+      health.status = 'degraded'; // Still functional without Redis
+    }
+  } catch (error) {
+    health.services.redis = 'disconnected';
+    health.status = 'degraded'; // Still functional without Redis
+  }
+
+  const statusCode = health.status === 'healthy' ? 200 : 206; // 206 = Partial Content (degraded)
+  res.status(statusCode).json(health);
 });
 
 // Example API endpoint

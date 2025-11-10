@@ -1,574 +1,647 @@
-# Wander Dev Environment
+# Wander Zero-to-Running Developer Environment
 
-Zero-to-running local development environment in under 10 minutes.
+**Clone → Single Command → Running App in <10 Minutes**
 
-## Quick Start
+A complete multi-service development environment that "just works" on any machine.
 
-### Option 1: Interactive Setup (Recommended for First Time)
+---
 
-```bash
-# Run the interactive setup script
-./setup.sh
-```
+## 🚀 Quick Start
 
-The script will:
-- Check all prerequisites
-- Help install missing dependencies
-- Start Docker if needed
-- Configure your environment
-- Optionally start the services
-
-### Option 2: Manual Start (If Already Setup)
+### Three Commands to Running App
 
 ```bash
-# 1. Start everything
-make dev
+git clone <your-repo-url>
+cd wander-dev-env
+cp .env.local.example .env && make dev
 ```
 
-That's it! Visit http://localhost:3000 to see your app.
+**That's it!** Visit http://localhost:3000 to see your app.
+
+**First time?** The setup will:
+- ✅ Check Docker is installed and running
+- ✅ Validate your configuration
+- ✅ Start all services (Frontend, API, PostgreSQL, Redis)
+- ✅ Run database migrations
+- ✅ Verify everything is healthy
+
+**Total time:** 5-10 minutes ⏱️
+
+---
+
+## 📋 What You Get
+
+| Service | URL | Stack |
+|---------|-----|-------|
+| **Frontend** | http://localhost:3000 | React 18 + TypeScript + Vite + Tailwind CSS v4 |
+| **API** | http://localhost:8000 | Node.js + TypeScript + Express |
+| **Database** | localhost:5432 | PostgreSQL 16 |
+| **Cache** | localhost:6379 | Redis 7 |
+| **Health Check** | http://localhost:8000/health | Service status endpoint |
+| **Debugger** | localhost:9229 | Node.js inspector |
+
+**Features:**
+- 🔄 Hot reload for both frontend and API
+- 🏥 Automatic health checks
+- 📊 Structured error messages with troubleshooting hints
+- 🔒 Secure defaults for local development
+- 🐳 Fully containerized (no global npm installs)
+- ⚡ Optimized startup (<60 seconds)
+
+---
+
+## 📖 Documentation
+
+- **[Quick Start](#quick-start)** - Get running in 3 commands
+- **[Available Commands](#available-commands)** - All `make` targets
+- **[Configuration](#configuration)** - Environment variables
+- **[Development Workflow](#development-workflow)** - Day-to-day usage
+- **[Troubleshooting](#troubleshooting)** - Common issues
+- **[Deployment](#deployment)** - Production deployment options
+- **[Architecture](#architecture)** - System design
+
+---
 
 ## Prerequisites
 
-- **Colima** (recommended) or Docker Desktop 4.x+
-- docker-compose 2.x+ (included with Docker)
-- **8GB RAM minimum**
-- **10GB free disk space**
+**Required:**
+- Docker (Colima or Docker Desktop)
+- 8GB RAM minimum
+- 10GB free disk space
 
-Check prerequisites:
+**Check if you're ready:**
 ```bash
 make prereqs
 ```
 
-### First-Time Installation
+### First-Time Docker Setup
 
-If you don't have Docker/Colima installed yet:
-
-**Option 1: Colima (Recommended - Lightweight)**
+**macOS (Recommended: Colima)**
 ```bash
-# Install via Homebrew (macOS)
+# Install
 brew install colima docker docker-compose
 
-# Start Colima with optimal settings
+# Start with optimal settings
 colima start --cpu 4 --memory 8 --disk 60
 
 # Verify
 docker info
 ```
 
-**Option 2: Docker Desktop**
+**macOS (Alternative: Docker Desktop)**
 ```bash
-# Install via Homebrew
 brew install --cask docker
-
-# Or download from https://www.docker.com/products/docker-desktop
-# Then start Docker Desktop and wait for it to fully initialize
+# Start Docker Desktop from Applications
 ```
 
-## Available Commands
+**Linux**
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Log out and back in
+```
+
+---
+
+## 🎯 Available Commands
+
+Run `make help` to see all commands with descriptions.
+
+### Local Development
 
 | Command | Description |
 |---------|-------------|
-| `make dev` | Start all services with health checks |
-| `make down` | Stop and remove all containers/volumes |
+| `make dev` | Start all services (checks prerequisites, validates config) |
+| `make down` | Stop services (keeps data) |
+| `make restart` | Quick restart (down + dev) |
+| `make reset` | Nuclear option - fresh start, deletes all data |
+| `make health` | Check if all services are healthy |
+
+### Logs & Monitoring
+
+| Command | Description |
+|---------|-------------|
 | `make logs` | Tail logs from all services |
-| `make reset` | Full teardown and fresh start |
+| `make logs-api` | View API logs only |
+| `make logs-frontend` | View frontend logs only |
+| `make logs-db` | View PostgreSQL logs |
+| `make logs-redis` | View Redis logs |
+
+### Database
+
+| Command | Description |
+|---------|-------------|
 | `make migrate` | Run database migrations |
-| `make seed` | Load test data into database |
-| `make test` | Run test suites (API + Frontend) |
-| `make shell-api` | Open shell in API container |
+| `make migrate-rollback` | Rollback last migration |
+| `make seed` | Load test data |
 | `make shell-db` | Open PostgreSQL shell |
-| `make k8s-local-setup` | Set up local Kubernetes (Minikube) |
-| `make deploy-local` | Deploy to local Minikube cluster |
-| `make deploy-fks` | Deploy to Fly Kubernetes (FKS) |
 
-## Services
+### Testing
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| Frontend | http://localhost:3000 | React + TypeScript + Vite + Tailwind CSS v4 |
-| API | http://localhost:8000 | Node + TypeScript + Express |
-| API Health | http://localhost:8000/health | Health check endpoint |
-| PostgreSQL | localhost:5432 | Database |
-| Redis | localhost:6379 | Cache |
-| Debug Port | localhost:9229 | Node.js debugger |
+| Command | Description |
+|---------|-------------|
+| `make test` | Run all tests (API + frontend) |
+| `make test-api` | Run API tests only |
+| `make test-frontend` | Run frontend tests only |
+| `make lint` | Run linters on all code |
 
-## Configuration
+### Development Tools
 
-Environment variables are in `.env` (auto-created from `.env.example`).
+| Command | Description |
+|---------|-------------|
+| `make shell-api` | Open shell in API container |
+| `make validate-secrets` | Check .env for CHANGE_ME values |
 
-**Important:** Change all `CHANGE_ME` values in `.env` before deploying to production.
+### Cleanup
 
-## Hot Reload
+| Command | Description |
+|---------|-------------|
+| `make clean` | Stop services and remove volumes |
+| `make nuke` | Remove everything (images, volumes, containers) |
 
-Both frontend and API support hot reload:
-- Edit files in `api/src/` or `frontend/src/`
-- Changes apply automatically
-- No rebuild needed
+### Deployment
 
-## Development Workflow
+| Command | Description |
+|---------|-------------|
+| `make k8s-setup` | Setup local Kubernetes (Minikube) |
+| `make k8s-deploy` | Deploy to local K8s |
+| `make fly-deploy` | Deploy to Fly.io Kubernetes (production demo) |
 
-### 1. Daily Start
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Configuration is in `.env` file. Two options:
+
+**Option 1: Quick Start (Recommended for Local Dev)**
 ```bash
+cp .env.local.example .env
+```
+Uses safe defaults. Start immediately with `make dev`.
+
+**Option 2: Custom Configuration**
+```bash
+cp .env.example .env
+# Edit .env and replace CHANGE_ME values
+make validate-secrets  # Verify no CHANGE_ME left
 make dev
 ```
 
-### 2. Make Changes
-- Edit code in `api/src/` or `frontend/src/`
-- Changes auto-reload
+### Key Variables
 
-### 3. View Logs
-```bash
-make logs
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
+| `REDIS_PASSWORD` | (required) | Redis password |
+| `API_SECRET` | (required) | API encryption key |
+| `JWT_SECRET` | (required) | JWT token secret |
+| `API_PORT` | 8000 | API HTTP port |
+| `FRONTEND_PORT` | 3000 | Frontend dev server port |
+| `NODE_ENV` | development | Environment (development/production/test) |
 
-### 4. Test
+**Security Note:**
+- `.env` is git-ignored
+- Never commit secrets
+- Use simple passwords for local dev (e.g., `dev_password_123`)
+- Generate strong secrets for production
+
+---
+
+## 💻 Development Workflow
+
+### Daily Workflow
+
 ```bash
+# Morning: Start services
+make dev
+
+# Check everything is healthy
+make health
+
+# View logs while developing
+make logs-api  # or logs-frontend
+
+# Run tests before committing
 make test
-```
 
-### 5. Clean Shutdown
-```bash
+# Evening: Stop services
 make down
 ```
 
-## Package Manager (pnpm)
+### Adding a New Feature
 
-This project uses **pnpm** instead of npm for superior performance and efficiency.
-
-### Why pnpm?
-- ⚡ **3x faster** - Uses content-addressable storage
-- 💾 **70% less disk space** - Shares packages across projects (100MB vs 300MB per project)
-- 🔒 **Stricter dependency resolution** - Better reliability
-- 📦 **100% npm compatible** - Drop-in replacement
-
-### How it works
-- **You don't need to install pnpm locally** - it runs inside Docker containers
-- pnpm is enabled via Node.js corepack (built-in to Node 16+)
-- `pnpm-lock.yaml` files ensure consistent installs across environments
-- **Always commit lockfiles** to version control
-
-### Adding/Removing Packages
-
-**Method 1: Edit package.json, then rebuild**
 ```bash
-# Edit api/package.json or frontend/package.json
-make down
-make dev  # Rebuilds with new dependencies
+# 1. Start fresh
+make reset
+
+# 2. Create database migration (if needed)
+cd api
+pnpm run migrate:create add_users_table
+
+# 3. Edit migration file in api/src/migrations/
+# 4. Run migration
+make migrate
+
+# 5. Add seed data (optional)
+# Edit api/src/seed.ts
+make seed
+
+# 6. Develop feature
+# Files hot-reload automatically
+
+# 7. Run tests
+make test
+
+# 8. Check API in browser
+open http://localhost:8000/health
 ```
 
-**Method 2: Use container shell**
+### Debugging
+
+**API Debugging (Node Inspector)**
 ```bash
+# 1. Attach debugger to port 9229
+# VS Code: Add to launch.json:
+{
+  "type": "node",
+  "request": "attach",
+  "name": "Attach to API",
+  "port": 9229,
+  "address": "localhost",
+  "restart": true,
+  "sourceMaps": true
+}
+
+# 2. Set breakpoints in api/src/
+# 3. Start debugging in VS Code
+```
+
+**Database Inspection**
+```bash
+# Open psql shell
+make shell-db
+
+# Run queries
+SELECT * FROM users;
+\dt  # List tables
+\q   # Quit
+```
+
+**Container Shell Access**
+```bash
+# API container
 make shell-api
-pnpm add express        # Add package
-pnpm remove lodash      # Remove package
-exit
-make down && make dev   # Rebuild to persist
+
+# Then run commands:
+pnpm run test
+pnpm run lint
+env  # See environment variables
 ```
 
-## Project Structure
+---
 
-```
-dev_env/
-├── api/                    # Node/TypeScript API
-│   ├── src/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── pnpm-lock.yaml
-├── frontend/               # React/TypeScript Frontend
-│   ├── src/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── pnpm-lock.yaml
-├── k8s/                    # Kubernetes configs
-│   └── charts/wander/
-├── docker-compose.yml      # Service definitions
-├── Makefile               # Developer commands
-├── .env.example           # Config template
-└── README.md
-```
+## 🐛 Troubleshooting
 
-## Architecture
+### Services Won't Start
 
-**Local Development:** Docker Compose (simple, fast)
-**Deployment:** Kubernetes + Helm (scalable, production-ready)
+**Problem:** `make dev` fails
 
-Services start in order:
-1. PostgreSQL + Redis (databases)
-2. API (waits for databases)
-3. Frontend (waits for API)
-
-Health checks ensure each service is ready before the next starts.
-
-## Features
-
-### Database Migrations
-- **Automatic execution** on API startup using `node-pg-migrate`
-- Initial schema includes `users` and `posts` tables with foreign keys
-- Run manually: `make migrate`
-- Migrations located in: `api/src/migrations/`
-
-### Seed Data System
-- TypeScript seed runners with type safety
-- Idempotent seeding (can run multiple times safely)
-- **Default seed data**: 5 test users + 8 posts
-- Run seeds: `make seed`
-- Seeds located in: `api/src/seeds/`
-
-### Testing Infrastructure (Vitest)
-- **API tests**: 9 tests (health checks + database)
-- **Frontend tests**: 5 tests (component + integration)
-- Run tests: `make test`
-- Tests located in: `api/src/__tests__/` and `frontend/src/__tests__/`
-- Unified testing framework across API and frontend
-
-## Kubernetes Deployment
-
-Production-ready Helm charts with three deployment options:
-
-### Option 1: Local Testing with Minikube (Free)
-
-Test your Kubernetes deployment locally - **no cloud costs!**
-
+**Solutions:**
 ```bash
-# Setup (first time only, ~10 minutes)
-make k8s-local-setup
+# 1. Check Docker is running
+docker info
 
-# Deploy (~5 minutes)
-make deploy-local
+# 2. Check prerequisites
+make prereqs
 
-# Access services
-minikube service wander-local-frontend -n wander-local
-minikube service wander-local-api -n wander-local
+# 3. View detailed logs
+make logs
+
+# 4. Try fresh start
+make reset
 ```
-
-**What it does:**
-- Installs Minikube + kubectl (if needed)
-- Starts local K8s cluster (4 CPUs, 8GB RAM)
-- Builds Docker images locally
-- Deploys with Helm using `values-local.yaml`
-
-**When to use:** Validate Helm charts before production deployment
-
-**Cleanup:**
-```bash
-helm uninstall wander-local -n wander-local  # Remove deployment
-minikube stop  # Stop cluster (free up resources)
-```
-
-### Option 2: Fly.io Kubernetes (FKS)
-
-Deploy to Fly.io's managed Kubernetes service (beta).
-
-```bash
-# Setup (first time, ~20 minutes)
-./scripts/fks-setup.sh
-
-# Build and push images
-fly auth docker
-docker build -t registry.fly.io/<your-org>/wander-api:latest ./api
-docker push registry.fly.io/<your-org>/wander-api:latest
-docker build -t registry.fly.io/<your-org>/wander-frontend:latest ./frontend
-docker push registry.fly.io/<your-org>/wander-frontend:latest
-
-# Deploy (~10 minutes)
-make deploy-fks
-
-# Get service URLs
-kubectl get svc -n wander-fks
-```
-
-**What `fks-setup.sh` does:**
-- Creates FKS cluster: `fly ext k8s create`
-- Sets up WireGuard VPN for cluster access
-- Creates Fly Postgres database
-- Configures Kubernetes secrets
-- Updates image registry references
-
-**FKS Adaptations (Beta Limitations):**
-- ❌ No init containers → Migrations run as separate Job
-- ❌ No HPA → Fixed replicas, scale manually with kubectl
-- ❌ No multi-container pods → Single container per pod
-- ✅ LoadBalancer services → Get public Fly.io IPs
-- ✅ External databases → Fly Postgres + Upstash Redis
-
-**When to use:** Demo K8s deployment on Fly.io platform
-
-**Cost:** FKS has costs - check Fly.io pricing. Recommended: create → demo → destroy
-
-**Cleanup:**
-```bash
-helm uninstall wander-fks -n wander-fks  # Remove deployment
-fly ext k8s destroy <cluster-name>  # Delete cluster
-```
-
-### Option 3: Cloud Kubernetes (Production)
-
-Deploy to GKE, EKS, AKS, or DigitalOcean Kubernetes.
-
-```bash
-# Deploy to staging
-helm upgrade --install wander ./k8s/charts/wander \
-  --namespace staging \
-  --create-namespace \
-  --values ./k8s/charts/wander/values-staging.yaml
-
-# Deploy to production
-helm upgrade --install wander ./k8s/charts/wander \
-  --namespace production \
-  --create-namespace \
-  --values ./k8s/charts/wander/values-prod.yaml
-```
-
-**Production values include:**
-- Horizontal Pod Autoscaling (3-20 pods)
-- High-availability Redis (2 replicas)
-- Resource limits (10Gi+ for production)
-- Ingress with TLS/HTTPS
-- External Secrets support
-
-**When to use:** Production deployments
-
-### Kubernetes Deployment Comparison
-
-| Method | Setup Time | Cost | Best For |
-|--------|------------|------|----------|
-| **Minikube** | 10 min | $0 | Testing Helm charts locally |
-| **FKS** | 30 min | $$$ | Demo K8s on Fly.io |
-| **GKE/EKS/AKS** | 20 min | $$$$ | Production K8s |
-
-### Kubernetes Files
-
-```
-k8s/charts/wander/
-├── Chart.yaml              # Metadata and dependencies
-├── values.yaml             # Default (development)
-├── values-local.yaml       # Minikube local testing
-├── values-fks.yaml         # Fly Kubernetes
-├── values-staging.yaml     # Staging environment
-├── values-prod.yaml        # Production with HA
-├── templates/              # Deployments, services, configs
-└── README.md               # Helm chart documentation
-
-k8s/fks-migration-job.yaml  # Migration Job for FKS
-scripts/fks-setup.sh        # FKS interactive setup
-```
-
-## Database Schema
-
-After running `make dev`, the following tables are automatically created:
-
-### Users Table
-- `id` (serial, primary key)
-- `email` (unique, indexed)
-- `username` (unique)
-- `password_hash`
-- `created_at`, `updated_at` (timestamps)
-
-### Posts Table
-- `id` (serial, primary key)
-- `user_id` (foreign key → users.id)
-- `title`
-- `content` (text)
-- `status` (draft/published/archived)
-- `created_at`, `updated_at` (timestamps with indexes)
-
-## Troubleshooting
 
 ### Port Conflicts
 
-**Problem:** Port already in use
+**Problem:** Port already in use (3000, 8000, 5432, 6379)
 
-**Solution:**
+**Solutions:**
 ```bash
-# Find process using port
-lsof -ti:3000  # or :8000, :5432, :6379
+# Find what's using the port
+lsof -ti:3000  # Replace with your port
 
-# Kill process or change port in .env
+# Kill the process
+kill $(lsof -ti:3000)
+
+# Or change port in .env
+FRONTEND_PORT=3001
 ```
 
-### Docker Not Running
-
-**Problem:** Cannot connect to Docker daemon
-
-**Solution:**
-```bash
-# Start Colima
-colima start
-
-# Check status
-colima status
-
-# Then run your environment
-make dev
-```
-
-### Colima Management
-
-This project uses **Colima** instead of Docker Desktop for lightweight, CLI-based container management.
-
-**Common Commands:**
-```bash
-# Start Colima
-colima start
-
-# Stop Colima
-colima stop
-
-# Restart Colima
-colima restart
-
-# Check status
-colima status
-
-# View logs
-colima logs
-
-# Delete and recreate (cleans everything)
-colima delete && colima start --cpu 4 --memory 8 --disk 60
-```
-
-**Why Colima?**
-- 🚀 Faster and more stable than Docker Desktop
-- 💾 Uses ~1GB RAM vs Docker Desktop's 2-4GB
-- ⚡ Native Apple Silicon performance (macOS Virtualization.Framework)
-- 🔧 100% Docker CLI compatible - no changes to your workflow
-- 🆓 Free and open source
-
-### Services Not Healthy
-
-**Problem:** Services stuck in "starting" state
-
-**Solution:**
-```bash
-# Check logs
-make logs
-
-# Full reset
-make reset
-make dev
-```
-
-### Database Connection Issues
+### Database Connection Failed
 
 **Problem:** API can't connect to PostgreSQL
 
-**Solution:**
+**Solutions:**
 ```bash
-# Verify PostgreSQL is healthy
-docker compose ps postgres
+# 1. Check PostgreSQL is healthy
+make health
 
-# Check logs
-docker compose logs postgres
+# 2. Check logs
+make logs-db
 
-# Reset if needed
+# 3. Verify password in .env
+make validate-secrets
+
+# 4. Reset database
 make reset
 ```
 
-### Minikube Issues
+### Services "Unhealthy"
 
-**Problem:** Minikube won't start
+**Problem:** `make health` shows services are unhealthy
 
-**Solution:**
+**Solutions:**
 ```bash
-# Delete and recreate
-minikube delete
-minikube start --cpus=4 --memory=8192 --disk-size=40g
+# 1. Wait longer (first start takes ~60s)
+sleep 30 && make health
+
+# 2. Check specific service logs
+make logs-api     # API issues
+make logs-frontend # Frontend issues
+
+# 3. View detailed error messages
+docker ps  # Check container status
 ```
 
-**Problem:** Pods stuck in "ImagePullBackOff"
+### "CHANGE_ME" Errors
 
-**Solution:**
+**Problem:** Error about CHANGE_ME values in .env
+
+**Solutions:**
 ```bash
-# Rebuild images in Minikube's Docker daemon
-eval $(minikube docker-env)
-docker build -t wander-api:local ./api
-docker build -t wander-frontend:local ./frontend
+# Option 1: Use safe defaults
+rm .env
+cp .env.local.example .env
+make dev
 
-# Restart deployment
-kubectl rollout restart deployment/wander-local-api -n wander-local
+# Option 2: Set custom values
+make validate-secrets  # Shows which values need changing
+# Edit .env and replace CHANGE_ME values
+make dev
 ```
 
-**Problem:** Can't access Minikube services
+### Docker Out of Space
 
-**Solution:**
+**Problem:** No space left on device
+
+**Solutions:**
 ```bash
-# Get service URL
-minikube service wander-local-frontend -n wander-local --url
+# Clean up Docker
+docker system prune -a --volumes
 
-# Or open in browser
-minikube service wander-local-frontend -n wander-local
+# Or nuke everything
+make nuke
+
+# Then restart
+make dev
 ```
 
-### FKS Issues
+### Still Stuck?
 
-**Problem:** Can't connect to FKS cluster
+1. Check logs: `make logs`
+2. Try fresh start: `make reset`
+3. Verify Docker: `docker info`
+4. Check GitHub Issues
 
-**Solution:**
+---
+
+## 🚢 Deployment
+
+### Production Deployment Options
+
+#### Option 1: Fly.io Kubernetes (Recommended)
+
+Full Kubernetes deployment demonstrating production patterns:
+
 ```bash
-# Verify WireGuard is active (check WireGuard app)
+# See detailed guide
+cat DEPLOY_FLY_K8S.md
 
-# Or use fly proxy
-fly proxy 6443:6443 -a <cluster-name>
-
-# Verify kubeconfig
-export KUBECONFIG=$(pwd)/kubeconfig-fks.yaml
-kubectl get nodes
+# Or run automated setup
+make fly-deploy
 ```
 
-**Problem:** Image pull errors on FKS
+**Features:**
+- Multi-service orchestration
+- External PostgreSQL (Fly Postgres)
+- Redis cache (Upstash)
+- Health checks & rolling updates
+- Cost: ~$15/month (destroy after demo)
 
-**Solution:**
+#### Option 2: Docker Compose (Simple)
+
+Deploy to any VPS with Docker:
+
 ```bash
-# Re-authenticate with Fly registry
-fly auth docker
-
-# Rebuild and push
-docker build -t registry.fly.io/<org>/wander-api:latest ./api
-docker push registry.fly.io/<org>/wander-api:latest
+# On server
+git clone <repo>
+cd wander-dev-env
+cp .env.example .env
+# Edit .env with production secrets
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## Secret Management
+#### Option 3: Fly Machines (Simplest)
 
-**Local Development:**
-- Use `.env` file (gitignored, auto-created from `.env.example` with `CHANGE_ME` placeholders)
-- Run `./scripts/validate-secrets.sh` to check for unresolved placeholders
-- Mock secrets are fine for dev; update for staging/prod
+Simpler than Kubernetes, auto-scaling:
 
-**Kubernetes (Staging/Production):**
-- Use External Secrets Operator (recommended for gitops)
-- Or Sealed Secrets (encrypt secrets in repo)
-- Or cloud provider secret managers (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault)
-- Example Sealed Secret for JWT_SECRET:
-  ```
-  apiVersion: bitnami.com/v1alpha1
-  kind: SealedSecret
-  metadata:
-    name: wander-api-secrets
-    namespace: production
-  spec:
-    encryptedData:
-      JWT_SECRET: AgC2... (encrypted value)
-  ```
-- Never commit real secrets; use `helm --set` only for testing
+```bash
+fly launch --name wander-api
+fly launch --name wander-frontend
+# ~$5/month, automatic SSL
+```
 
-## Next Steps
+### Production Checklist
 
-- [ ] Customize API endpoints in `api/src/`
-- [ ] Build UI components in `frontend/src/`
-- [ ] Add more database migrations as needed
-- [ ] Expand test coverage
-- [ ] Set up CI/CD pipeline (GitHub Actions, GitLab CI)
-- [ ] Configure production secrets
-- [ ] Deploy to staging with Helm
-- [ ] Set up monitoring (Prometheus + Grafana)
+Before deploying to production:
 
-## Support
+- [ ] Change all passwords in `.env`
+- [ ] Set `NODE_ENV=production`
+- [ ] Enable HTTPS/SSL
+- [ ] Set up database backups
+- [ ] Configure monitoring (health checks)
+- [ ] Set up log aggregation
+- [ ] Review security (CORS, rate limiting)
+- [ ] Test disaster recovery
+- [ ] Document rollback procedure
 
-- Check logs: `make logs`
-- Reset environment: `make reset`
-- View all commands: `make help`
-- Open issue on GitHub
+---
 
-## License
+## 🏗️ Architecture
 
-MIT
+### System Overview
+
+```
+┌──────────────┐
+│   Frontend   │  React + Vite + Tailwind
+│  :3000       │  Hot reload, TypeScript
+└──────┬───────┘
+       │ HTTP
+       ↓
+┌──────────────┐
+│     API      │  Node + Express + TypeScript
+│   :8000      │  REST endpoints, migrations
+└──┬───────┬───┘
+   │       │
+   ↓       ↓
+┌────┐  ┌─────┐
+│ PG │  │Redis│  PostgreSQL 16 + Redis 7
+│5432│  │6379 │  Persistent data + cache
+└────┘  └─────┘
+```
+
+### Service Dependencies
+
+```
+PostgreSQL → Ready (10s)
+    ↓
+Redis → Ready (5s)
+    ↓
+API → Migrations → Ready (30s)
+    ↓
+Frontend → Ready (20s)
+    ↓
+All Healthy ✓ (~60s total)
+```
+
+### Development Stack
+
+**Frontend:**
+- React 18 (UI framework)
+- TypeScript (type safety)
+- Vite (build tool, HMR)
+- Tailwind CSS v4 (styling)
+- Vitest (testing)
+
+**API:**
+- Node.js 20 LTS
+- Express (web framework)
+- TypeScript
+- node-pg-migrate (database migrations)
+- Vitest (testing)
+- pg (PostgreSQL client)
+- redis (Redis client)
+
+**Infrastructure:**
+- Docker + Docker Compose
+- PostgreSQL 16 (database)
+- Redis 7 (cache)
+- Kubernetes (production deployment option)
+
+### Directory Structure
+
+```
+wander-dev-env/
+├── api/                # Node.js API service
+│   ├── src/
+│   │   ├── index.ts      # Main entry point
+│   │   ├── migrations/   # Database migrations
+│   │   └── seed.ts       # Test data
+│   ├── Dockerfile        # Multi-stage build
+│   └── package.json
+│
+├── frontend/           # React frontend
+│   ├── src/
+│   │   ├── App.tsx       # Main component
+│   │   └── main.tsx      # Entry point
+│   ├── Dockerfile
+│   └── package.json
+│
+├── k8s/                # Kubernetes configs
+│   └── charts/wander/    # Helm chart
+│
+├── fly_minimal/        # Fly.io demo machine
+│   ├── bootstrap.sh      # Zero-to-running script
+│   ├── Dockerfile
+│   └── README.md
+│
+├── scripts/            # Setup scripts
+│   ├── setup.sh          # Interactive setup
+│   ├── teardown.sh       # Cleanup
+│   └── fks-setup.sh      # Fly K8s setup
+│
+├── .env.example        # Config template
+├── .env.local.example  # Safe defaults
+├── docker-compose.yml  # Service definitions
+├── Makefile            # Development commands
+└── README.md           # This file
+```
+
+---
+
+## 🎓 Demo: Zero-to-Running on Clean Linux
+
+Want to prove this works on a truly clean machine? Try our Fly.io demo:
+
+```bash
+# 1. Deploy minimal Linux machine to Fly.io
+cd fly_minimal
+fly deploy
+
+# 2. SSH into fresh machine
+fly ssh console
+
+# 3. Run bootstrap script (installs everything)
+curl -fsSL <your-bootstrap-url> | bash
+
+# 4. Wait ~10 minutes
+# 5. App running!
+```
+
+See `fly_minimal/README.md` for details.
+
+---
+
+## 🤝 Contributing
+
+### Adding a New Service
+
+1. Add service to `docker-compose.yml`
+2. Add health check
+3. Update `make health` command in Makefile
+4. Add to README services table
+5. Test with `make dev`
+
+### Adding a Database Migration
+
+```bash
+cd api
+pnpm run migrate:create your_migration_name
+# Edit api/src/migrations/<timestamp>_your_migration_name.ts
+make migrate
+```
+
+---
+
+## 📝 License
+
+[Your License Here]
+
+---
+
+## 🆘 Support
+
+- **Issues:** GitHub Issues
+- **Docs:** This README + `DEPLOY_FLY_K8S.md`
+- **Commands:** `make help`
+
+---
+
+**Built with ❤️ by Wander Team**
+
+**Time to running app:** <10 minutes ⏱️
+**Supported platforms:** macOS, Linux, Windows (WSL2)
+**Production ready:** Yes ✅

@@ -1,8 +1,33 @@
 # Fly Minimal - Lean Linux Test Machine
 
-A minimal Alpine Linux machine on Fly.io for testing setup scripts via SSH.
+A minimal Alpine Linux machine on Fly.io for testing "zero-to-running" setup scripts.
 
 **NO PERSISTENT STORAGE** - Fresh, clean start every time you redeploy. Perfect for demos.
+
+## Quick Demo: Zero-to-Running on Clean Linux
+
+This demonstrates the entire "zero-to-running" workflow on a pristine Linux machine:
+
+```bash
+# 1. SSH into fresh Fly.io machine
+fly ssh console -a wander-test-minimal
+
+# 2. Run the bootstrap script (installs Docker, clones repo, runs make dev)
+curl -fsSL https://raw.githubusercontent.com/your-org/wander-dev-env/master/fly_minimal/bootstrap.sh | bash
+
+# 3. Wait ~5-10 minutes for services to start
+# 4. Verify all services are healthy at http://localhost:3000
+```
+
+**What the bootstrap script does:**
+1. Installs Docker on clean Linux (Ubuntu/Alpine)
+2. Installs Git
+3. Clones the repository
+4. Creates `.env` from safe defaults
+5. Runs `make dev`
+6. Verifies all services are healthy
+
+Total time: **~10 minutes** from bare Linux to running app!
 
 ## Configuration
 
@@ -105,13 +130,99 @@ scp -P 10022 setup.sh testuser@localhost:~/
 
 ## Features
 
-- ✅ **Minimal**: Alpine Linux base (~50MB total)
+- ✅ **Minimal**: Alpine Linux base (~15MB total)
+- ✅ **Fish Shell**: Modern shell with colors and auto-suggestions (default for testuser)
 - ✅ **SSH Ready**: OpenSSH server configured
 - ✅ **Test User**: `testuser` with sudo access
 - ✅ **Auto-stop**: No charges when idle
 - ✅ **Stateless**: Fresh start every deployment (no volumes)
-- ✅ **Basic Tools**: bash, curl, wget, git
+- ✅ **Basic Tools**: bash, fish, curl, wget, git
 - ✅ **Demo-Ready**: Clean environment every time
+
+## Fish Shell Integration
+
+### Local Setup Complete
+
+Fish shell is installed on the remote machine with the following local tools:
+
+**Scripts Created:**
+- `~/bin/fly-fish-sync.sh` - Sync your local Fish config to the remote machine
+
+**Fish Functions Added to `~/.config/fish/config.fish`:**
+```fish
+# Connect to Fly machine with SSH
+function flyfish
+    if test (count $argv) -eq 0
+        fly ssh console -a wander-test-minimal
+    else
+        fly ssh console -a $argv[1]
+    end
+end
+
+# Sync Fish config to remote machine
+function fly-sync
+    if test (count $argv) -eq 0
+        ~/bin/fly-fish-sync.sh wander-test-minimal
+    else
+        ~/bin/fly-fish-sync.sh $argv[1]
+    end
+end
+```
+
+### SSH Configuration
+
+Your `~/.ssh/config` is set up to pass terminal colors through SSH:
+```
+Host fly-*
+    SendEnv TERM
+    SetEnv TERM=xterm-256color
+```
+
+This ensures Fish's colors and themes render properly on the remote machine.
+
+### ⚠️ Known Issue: SSH Authentication
+
+**Current Status:** SSH authentication is failing due to a conflict between Fly's SSH proxy and the custom SSHD.
+
+**The Problem:**
+- Fly.io uses its own SSH proxy (`hallpass`) for `fly ssh console`
+- Our custom SSHD competes for port 22
+- Result: Authentication fails with "no supported methods remain"
+
+**Recommended Fix:**
+
+Update the Dockerfile CMD to not run SSHD (Fly handles SSH for us):
+
+```dockerfile
+# Change from:
+CMD ["/usr/sbin/sshd", "-D", "-e"]
+
+# To (keep container running):
+CMD ["/bin/sh", "-c", "while true; do sleep 3600; done"]
+```
+
+Then redeploy: `fly deploy`
+
+After fixing, you'll be able to:
+```bash
+# Connect with Fish shell
+fly ssh console -a wander-test-minimal --user testuser
+
+# Or use the alias
+flyfish
+
+# Sync your Fish config
+fly-sync
+```
+
+### Alternative: Custom SSH Port
+
+If you need traditional SSH (not via Fly proxy):
+
+1. Configure SSHD to listen on port 2222 in Dockerfile
+2. Update fly.toml: `internal_port = 2222`
+3. Forward port: `fly proxy 2222:2222`
+4. Connect: `ssh -p 2222 testuser@localhost`
 
 ## Cost
 
