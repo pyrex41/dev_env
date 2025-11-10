@@ -1,0 +1,253 @@
+# Production environment configuration
+# Usage: helm install wander ./k8s/charts/wander -f ./k8s/charts/wander/values-prod.yaml
+
+global:
+  environment: production
+  domain: wander.example.com
+
+# Frontend production config
+frontend:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: registry.example.com/wander-frontend
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"  # Use specific version tags in production
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/hsts: "true"
+      nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+      nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    hosts:
+      - host: wander.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wander-prod-tls
+        hosts:
+          - wander.example.com
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: VITE_API_URL
+      value: "https://api.wander.example.com"
+
+# API production config
+api:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: registry.example.com/wander-api
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"  # Use specific version tags in production
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/hsts: "true"
+      nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/limit-rps: "10"
+    hosts:
+      - host: api.wander.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wander-api-prod-tls
+        hosts:
+          - api.wander.example.com
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8000"
+    - name: LOG_LEVEL
+      value: "info"
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# PostgreSQL production config
+postgresql:
+  enabled: true
+  auth:
+    username: wander_prod
+    database: wander_prod
+    existingSecret: wander-postgresql-secret
+
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "premium-ssd"  # Use high-performance storage in production
+
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+    # Production-grade PostgreSQL tuning
+    extraEnvVars:
+      - name: POSTGRESQL_MAX_CONNECTIONS
+        value: "200"
+      - name: POSTGRESQL_SHARED_BUFFERS
+        value: "1GB"
+      - name: POSTGRESQL_EFFECTIVE_CACHE_SIZE
+        value: "3GB"
+
+# Redis production config
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: wander-redis-secret
+
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "premium-ssd"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  replica:
+    replicaCount: 2  # Enable Redis replicas for high availability
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "premium-ssd"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+# ConfigMap data for production
+config:
+  api:
+    CORS_ORIGIN: "https://wander.example.com"
+    API_RATE_LIMIT: "100"
+    API_RATE_WINDOW: "15"
+
+# CRITICAL: Production secrets MUST be managed externally
+# DO NOT commit actual secret values to version control
+# Use one of these approaches:
+#   1. External Secrets Operator (recommended)
+#   2. Sealed Secrets
+#   3. HashiCorp Vault
+#   4. AWS Secrets Manager / GCP Secret Manager / Azure Key Vault
+#   5. helm install --set secrets.api.JWT_SECRET="..." (less secure)
+secrets:
+  api:
+    DATABASE_URL: ""  # Auto-generated from postgresql config
+    REDIS_URL: ""     # Auto-generated from redis config
+    JWT_SECRET: ""    # MUST BE SET via external secret management
+    SESSION_SECRET: "" # MUST BE SET via external secret management
+
+  postgresql:
+    password: ""  # MUST BE SET via external secret management
+
+  redis:
+    password: ""  # MUST BE SET via external secret management
+
+# Production security hardening
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Production affinity rules (spread pods across nodes)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - wander
+          topologyKey: kubernetes.io/hostname

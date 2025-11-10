@@ -46,8 +46,9 @@ make prereqs
 | `make down` | Stop and remove all containers/volumes |
 | `make logs` | Tail logs from all services |
 | `make reset` | Full teardown and fresh start |
+| `make migrate` | Run database migrations |
 | `make seed` | Load test data into database |
-| `make test` | Run test suites |
+| `make test` | Run test suites (API + Frontend) |
 | `make shell-api` | Open shell in API container |
 | `make shell-db` | Open PostgreSQL shell |
 
@@ -245,14 +246,64 @@ Health checks ensure each service is ready before the next starts.
 - Never commit real secrets
 - Document your strategy in k8s/ directory
 
+## P1 Features ✅
+
+The following production-ready features are included:
+
+### Database Migrations
+- **Automatic execution** on API startup using `node-pg-migrate`
+- Initial schema includes `users` and `posts` tables with foreign keys
+- Run manually: `make migrate`
+- Migrations located in: `api/src/migrations/`
+
+### Seed Data System
+- TypeScript seed runners with type safety
+- Idempotent seeding (can run multiple times safely)
+- **Default seed data**: 5 test users + 8 posts
+- Run seeds: `make seed`
+- Seeds located in: `api/src/seeds/`
+
+### Testing Infrastructure (Vitest)
+- **API tests**: 9 tests (health checks + database)
+- **Frontend tests**: 5 tests (component + integration)
+- Run tests: `make test`
+- Tests located in: `api/src/__tests__/` and `frontend/src/__tests__/`
+- Unified testing framework across API and frontend
+
+### Kubernetes Deployment
+- **Helm chart** ready for staging and production
+- Deployment configurations for all 4 services (API, Frontend, PostgreSQL, Redis)
+- Environment-specific values files: `values-staging.yaml` and `values-prod.yaml`
+- Comprehensive documentation: `k8s/charts/wander/README.md`
+
+## Database Schema
+
+After running `make dev`, the following tables are automatically created:
+
+### Users Table
+- `id` (serial, primary key)
+- `email` (unique, indexed)
+- `username` (unique)
+- `password_hash`
+- `created_at`, `updated_at` (timestamps)
+
+### Posts Table
+- `id` (serial, primary key)
+- `user_id` (foreign key → users.id)
+- `title`
+- `content` (text)
+- `status` (draft/published/archived)
+- `created_at`, `updated_at` (timestamps with indexes)
+
 ## Next Steps
 
 - [ ] Customize API endpoints in `api/src/`
 - [ ] Build UI components in `frontend/src/`
-- [ ] Add database migrations
+- [ ] Add more database migrations as needed
+- [ ] Expand test coverage
 - [ ] Set up CI/CD pipeline
-- [ ] Configure production secrets
-- [ ] Deploy to staging with `make deploy-staging`
+- [ ] Configure production secrets (External Secrets, Vault, etc.)
+- [ ] Deploy to staging: See `k8s/charts/wander/README.md`
 
 ## Support
 

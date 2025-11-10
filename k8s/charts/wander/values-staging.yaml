@@ -1,0 +1,157 @@
+# Staging environment configuration
+# Usage: helm install wander ./k8s/charts/wander -f ./k8s/charts/wander/values-staging.yaml
+
+global:
+  environment: staging
+  domain: staging.wander.example.com
+
+# Frontend staging config
+frontend:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: registry.example.com/wander-frontend
+    pullPolicy: Always
+    tag: "staging"
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: staging.wander.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wander-staging-tls
+        hosts:
+          - staging.wander.example.com
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  env:
+    - name: NODE_ENV
+      value: "staging"
+    - name: VITE_API_URL
+      value: "https://api.staging.wander.example.com"
+
+# API staging config
+api:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: registry.example.com/wander-api
+    pullPolicy: Always
+    tag: "staging"
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+    hosts:
+      - host: api.staging.wander.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wander-api-staging-tls
+        hosts:
+          - api.staging.wander.example.com
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+  env:
+    - name: NODE_ENV
+      value: "staging"
+    - name: PORT
+      value: "8000"
+    - name: LOG_LEVEL
+      value: "debug"
+
+# PostgreSQL staging config
+postgresql:
+  enabled: true
+  auth:
+    username: wander_staging
+    database: wander_staging
+    existingSecret: wander-postgresql-secret
+
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "standard"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+# Redis staging config
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: wander-redis-secret
+
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClass: "standard"
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# ConfigMap data for staging
+config:
+  api:
+    CORS_ORIGIN: "https://staging.wander.example.com"
+    API_RATE_LIMIT: "100"
+    API_RATE_WINDOW: "15"
+
+# NOTE: Secrets should be managed via external secret management
+# For staging, use: kubectl create secret or sealed-secrets
+# Never commit actual secret values to version control
+secrets:
+  api:
+    # Set these via: helm install --set secrets.api.JWT_SECRET="..."
+    # Or use external secret operators like sealed-secrets
+    DATABASE_URL: ""  # Auto-generated from postgresql config
+    REDIS_URL: ""     # Auto-generated from redis config
+    JWT_SECRET: ""    # MUST BE SET via --set or external secrets
+    SESSION_SECRET: "" # MUST BE SET via --set or external secrets
+
+  postgresql:
+    password: ""  # MUST BE SET via --set or external secrets
+
+  redis:
+    password: ""  # MUST BE SET via --set or external secrets

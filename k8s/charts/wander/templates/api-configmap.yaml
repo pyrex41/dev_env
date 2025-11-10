@@ -1,0 +1,13 @@
+{{- if .Values.api.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wander.fullname" . }}-api-config
+  labels:
+    {{- include "wander.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+data:
+  {{- range $key, $value := .Values.config.api }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}

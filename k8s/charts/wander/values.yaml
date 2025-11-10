@@ -1,0 +1,236 @@
+# Default values for wander
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  environment: development
+  domain: wander.local
+
+# Frontend configuration
+frontend:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: wander-frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: wander.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: VITE_API_URL
+      value: "http://api:8000"
+
+# API configuration
+api:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: wander-api
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  ingress:
+    enabled: false
+    className: nginx
+    annotations: {}
+    hosts:
+      - host: api.wander.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+  # Environment variables (non-sensitive)
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8000"
+    - name: LOG_LEVEL
+      value: "info"
+
+  # Secret references (for sensitive data)
+  envFrom:
+    - secretRef:
+        name: wander-api-secrets
+    - configMapRef:
+        name: wander-api-config
+
+  # Health check configuration
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# PostgreSQL configuration (using Bitnami chart)
+postgresql:
+  enabled: true
+  auth:
+    username: wander
+    database: wander
+    # Password should be set via values-<env>.yaml or --set flag
+    existingSecret: wander-postgresql-secret
+
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+# Redis configuration (using Bitnami chart)
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: wander-redis-secret
+    existingSecretPasswordKey: redis-password
+
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+      storageClass: ""
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  replica:
+    replicaCount: 0
+
+# ConfigMap data (non-sensitive configuration)
+config:
+  api:
+    # Add non-sensitive API configuration here
+    CORS_ORIGIN: "*"
+    API_RATE_LIMIT: "100"
+    API_RATE_WINDOW: "15"
+
+# Secrets (should be created separately or via sealed-secrets)
+secrets:
+  # These are placeholders - actual secrets should be managed via:
+  # - kubectl create secret
+  # - sealed-secrets
+  # - external secret operators
+  # - CI/CD pipeline
+  api:
+    DATABASE_URL: ""  # postgresql://user:password@host:5432/database
+    REDIS_URL: ""     # redis://:password@host:6379
+    JWT_SECRET: ""
+    SESSION_SECRET: ""
+
+  postgresql:
+    password: ""
+
+  redis:
+    password: ""
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "wander"
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
