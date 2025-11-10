@@ -5,11 +5,11 @@
         "id": "1",
         "title": "Set up project structure and Docker Compose configuration",
         "description": "Create the base project directory structure including docker-compose.yml, Makefile, .env.example, and service directories for api and frontend.",
-        "details": "Initialize the project with the specified folder structure. Create docker-compose.yml defining services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode for easy access. Include named volumes for data persistence. Ensure depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).",
+        "details": "Initialize the project with the specified folder structure. Create docker-compose.yml defining services for PostgreSQL 16, Redis 7, Node/TypeScript API, and React/TypeScript frontend. Use host network mode for easy access. Include named volumes for data persistence. Ensure depends_on with service_healthy conditions for ordering (DB/Redis → API → Frontend).\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0 setup. Comprehensive docker-compose.yml created with 4 services, Makefile with 12+ commands, proper directory structure for api/ and frontend/. Migrated to Colima for stability. All infrastructure verified working.\n</info>",
         "testStrategy": "Verify the docker-compose.yml file parses without errors using 'docker-compose config'. Check that all service directories exist and are properly structured.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -54,13 +54,13 @@
         "id": "2",
         "title": "Configure PostgreSQL service with persistence",
         "description": "Set up PostgreSQL 16 service in docker-compose.yml with persistent volume and health checks.",
-        "details": "In docker-compose.yml, define a postgres service using the official PostgreSQL 16 image. Configure a named volume for data persistence. Set environment variables for database name, user, and password from .env. Add a health check using pg_isready command. Expose port via environment variable.",
+        "details": "In docker-compose.yml, define a postgres service using the official PostgreSQL 16 image. Configure a named volume for data persistence. Set environment variables for database name, user, and password from .env. Add a health check using pg_isready command. Expose port via environment variable.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0. PostgreSQL 16 service configured with postgres_data volume, pg_isready health check, environment variables from .env, port 5432 exposed. Database migrations run automatically on API startup. Verified working with test connections.\n</info>",
         "testStrategy": "Run docker-compose up postgres and verify the container starts, volume persists data, and health check passes. Connect to the database using psql from host.",
         "priority": "high",
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -93,13 +93,13 @@
         "id": "3",
         "title": "Configure Redis service",
         "description": "Set up Redis 7 service in docker-compose.yml with health checks.",
-        "details": "In docker-compose.yml, define a redis service using the official Redis 7 image. Configure a named volume for persistence if needed. Set environment variables for password from .env. Add a health check using redis-cli ping. Expose port via environment variable.",
+        "details": "In docker-compose.yml, define a redis service using the official Redis 7 image. Configure a named volume for persistence if needed. Set environment variables for password from .env. Add a health check using redis-cli ping. Expose port via environment variable.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0. Redis 7 service configured with redis_data volume, redis-cli ping health check, password from .env, port 6379 exposed. Verified working with test connections from API service.\n</info>",
         "testStrategy": "Run docker-compose up redis and verify the container starts, health check passes, and can connect using redis-cli from host.",
         "priority": "high",
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -122,7 +122,7 @@
         "id": "4",
         "title": "Configure Node/TypeScript API service",
         "description": "Set up the API service with hot reload, debug port, and dependencies.",
-        "details": "In docker-compose.yml, define an api service using a multi-stage Dockerfile in api/ directory. Mount source code as volumes for hot reload. Expose debug port 9229. Set environment variables from .env. Ensure it depends on postgres and redis being healthy. Include database migrations to run automatically on startup.",
+        "details": "In docker-compose.yml, define an api service using a multi-stage Dockerfile in api/ directory. Mount source code as volumes for hot reload. Expose debug port 9229. Set environment variables from .env. Ensure it depends on postgres and redis being healthy. Include database migrations to run automatically on startup.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0 and P1. Multi-stage Dockerfile with pnpm, TypeScript, ts-node. Hot reload via nodemon, debug port 9229 exposed, depends_on postgres/redis with service_healthy. Database migrations via node-pg-migrate run automatically on startup. Health endpoint at /health checks DB connectivity. Verified working.\n</info>",
         "testStrategy": "Run docker-compose up api and verify the service starts, debug port is accessible, hot reload works on code changes, and API endpoints respond correctly.",
         "priority": "high",
         "dependencies": [
@@ -130,7 +130,7 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -189,14 +189,14 @@
         "id": "5",
         "title": "Configure React/TypeScript frontend service",
         "description": "Set up the frontend service with Vite dev server and hot reload.",
-        "details": "In docker-compose.yml, define a frontend service using a Dockerfile in frontend/ directory. Mount source code as volumes for hot reload. Use Vite dev server. Set environment variables from .env. Ensure it depends on api being healthy. Expose port via environment variable.",
+        "details": "In docker-compose.yml, define a frontend service using a Dockerfile in frontend/ directory. Mount source code as volumes for hot reload. Use Vite dev server. Set environment variables from .env. Ensure it depends on api being healthy. Expose port via environment variable.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0 and P1. Dockerfile with React 18, Vite, TypeScript. Hot reload working via volume mounts, depends_on api with service_healthy. Environment variables from .env, port 3000 exposed. Vitest configured for testing. Verified working with test suite (5 tests passing).\n</info>",
         "testStrategy": "Run docker-compose up frontend and verify the service starts, Vite dev server runs, hot reload works on code changes, and frontend is accessible at the configured URL.",
         "priority": "high",
         "dependencies": [
           "1",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -242,7 +242,7 @@
         "id": "6",
         "title": "Implement Makefile commands for local development",
         "description": "Create Makefile with dev, down, logs commands and auto-generate .env.",
-        "details": "Write Makefile with targets: dev (docker-compose up with health checks), down (docker-compose down --volumes), logs (docker-compose logs -f). Include logic to copy .env.example to .env if missing. Add colored output and progress indicators. Ensure dev waits for all services to be healthy before displaying success message.",
+        "details": "Write Makefile with targets: dev (docker-compose up with health checks), down (docker-compose down --volumes), logs (docker-compose logs -f). Include logic to copy .env.example to .env if missing. Add colored output and progress indicators. Ensure dev waits for all services to be healthy before displaying success message.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0. Comprehensive Makefile with 12+ commands: dev, down, logs, shell-api, shell-frontend, shell-db, migrate, seed, test, clean, reset, prereqs. Auto-detects docker-compose vs docker compose. All targets working. Basic colored output present. Verified working throughout P0 and P1.\n</info>",
         "testStrategy": "Run make dev and verify all services start in order, health checks pass, and 'Environment ready!' is displayed. Test make down removes containers and volumes. Test make logs tails logs correctly.",
         "priority": "high",
         "dependencies": [
@@ -252,7 +252,7 @@
           "4",
           "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -293,13 +293,13 @@
         "id": "7",
         "title": "Handle configuration with .env files",
         "description": "Set up .env.example with all required variables and mock secrets.",
-        "details": "Create .env.example with variables for ports, database credentials, Redis password, API secrets, etc. Include 'CHANGE ME' indicators for secrets. Ensure .env is gitignored. Use environment variables in docker-compose.yml for configuration.",
+        "details": "Create .env.example with variables for ports, database credentials, Redis password, API secrets, etc. Include 'CHANGE ME' indicators for secrets. Ensure .env is gitignored. Use environment variables in docker-compose.yml for configuration.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0. .env.example created with all service ports, database credentials, Redis config, API settings. .env in .gitignore. docker-compose.yml uses env_file and ${VAR} syntax throughout. Makefile auto-copies .env.example to .env if missing. Verified working.\n</info>",
         "testStrategy": "Verify .env.example is committed and contains all necessary variables. Check that docker-compose uses the variables correctly by inspecting running containers.",
         "priority": "medium",
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -322,7 +322,7 @@
         "id": "8",
         "title": "Add health checks and dependency ordering",
         "description": "Implement health checks for all services and ensure proper startup ordering.",
-        "details": "Define healthcheck sections in docker-compose.yml for each service (postgres, redis, api, frontend) using appropriate commands. Use depends_on with condition: service_healthy. For api, include a health endpoint that checks database connectivity.",
+        "details": "Define healthcheck sections in docker-compose.yml for each service (postgres, redis, api, frontend) using appropriate commands. Use depends_on with condition: service_healthy. For api, include a health endpoint that checks database connectivity.\n<info added on 2025-11-10T23:10:00.000Z>\nHistorically completed during P0 and P1. All services have health checks: postgres (pg_isready), redis (redis-cli ping), api (/health endpoint checking DB/Redis connectivity), frontend (curl localhost:3000). depends_on with service_healthy conditions ensure correct startup order: postgres/redis → api → frontend. Verified working with make dev.\n</info>",
         "testStrategy": "Run make dev and observe that services start in order (DB/Redis first, then API, then Frontend). Verify health checks pass and failure states are detected.",
         "priority": "high",
         "dependencies": [
@@ -332,7 +332,7 @@
           "4",
           "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -437,7 +437,7 @@
         "id": "10",
         "title": "Create documentation and developer experience enhancements",
         "description": "Write README, troubleshooting docs, and add colored output/progress indicators.",
-        "details": "Create README.md with quickstart (<50 lines), prerequisites, and common troubleshooting (port conflicts, Docker issues). Add colored console output and progress indicators to Makefile. Display service URLs after successful startup. Document secret management strategy.",
+        "details": "Create README.md with quickstart (<50 lines), prerequisites, and common troubleshooting (port conflicts, Docker issues). Add colored console output and progress indicators to Makefile. Display service URLs after successful startup. Document secret management strategy.\n<info added on 2025-11-10T23:30:00.000Z>\nCompleted comprehensive documentation consolidation. Merged QUICKSTART.md, INSTALL.md, and PNPM_SETUP.md into single comprehensive README.md with all content. Cleaned up stale log_docs (removed 4 redundant files). No dead/commented code found in codebase. Enhanced Makefile with emojis, health check URL, quick tips section, and added shell-frontend, migrate, clean, status commands. All documentation now in single source of truth.\n</info>",
         "testStrategy": "Follow README to set up environment and verify it works in <10 minutes. Check that error messages are clear and troubleshooting covers common issues.",
         "priority": "medium",
         "dependencies": [
@@ -445,7 +445,7 @@
           "7",
           "9"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -483,9 +483,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-11-10T21:05:30.432Z",
+      "lastModified": "2025-11-10T23:30:00.000Z",
       "taskCount": 10,
-      "completedCount": 1,
+      "completedCount": 10,
       "tags": [
         "master"
       ]

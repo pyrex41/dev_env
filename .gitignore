@@ -44,3 +44,4 @@ coverage/
 # Misc
 *.backup
 *.tmp
+repomix-output.xml

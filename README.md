@@ -29,13 +29,39 @@ That's it! Visit http://localhost:3000 to see your app.
 
 ## Prerequisites
 
-- Docker Desktop 4.x+ (or Docker Engine 20.x+)
-- docker-compose 2.x+
-- 8GB RAM minimum
+- **Colima** (recommended) or Docker Desktop 4.x+
+- docker-compose 2.x+ (included with Docker)
+- **8GB RAM minimum**
+- **10GB free disk space**
 
 Check prerequisites:
 ```bash
 make prereqs
+```
+
+### First-Time Installation
+
+If you don't have Docker/Colima installed yet:
+
+**Option 1: Colima (Recommended - Lightweight)**
+```bash
+# Install via Homebrew (macOS)
+brew install colima docker docker-compose
+
+# Start Colima with optimal settings
+colima start --cpu 4 --memory 8 --disk 60
+
+# Verify
+docker info
+```
+
+**Option 2: Docker Desktop**
+```bash
+# Install via Homebrew
+brew install --cask docker
+
+# Or download from https://www.docker.com/products/docker-desktop
+# Then start Docker Desktop and wait for it to fully initialize
 ```
 
 ## Available Commands
@@ -194,11 +220,39 @@ make test
 make down
 ```
 
-## Package Manager
+## Package Manager (pnpm)
 
-This project uses **pnpm** instead of npm for faster installs and better disk space efficiency.
+This project uses **pnpm** instead of npm for superior performance and efficiency.
 
-Inside containers, pnpm is automatically available via Node.js corepack.
+### Why pnpm?
+- ⚡ **3x faster** - Uses content-addressable storage
+- 💾 **70% less disk space** - Shares packages across projects (100MB vs 300MB per project)
+- 🔒 **Stricter dependency resolution** - Better reliability
+- 📦 **100% npm compatible** - Drop-in replacement
+
+### How it works
+- **You don't need to install pnpm locally** - it runs inside Docker containers
+- pnpm is enabled via Node.js corepack (built-in to Node 16+)
+- `pnpm-lock.yaml` files ensure consistent installs across environments
+- **Always commit lockfiles** to version control
+
+### Adding/Removing Packages
+
+**Method 1: Edit package.json, then rebuild**
+```bash
+# Edit api/package.json or frontend/package.json
+make down
+make dev  # Rebuilds with new dependencies
+```
+
+**Method 2: Use container shell**
+```bash
+make shell-api
+pnpm add express        # Add package
+pnpm remove lodash      # Remove package
+exit
+make down && make dev   # Rebuild to persist
+```
 
 ## Project Structure
 

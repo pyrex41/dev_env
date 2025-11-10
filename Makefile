@@ -1,4 +1,4 @@
-.PHONY: help dev down logs reset seed test deploy-staging shell-api shell-db prereqs
+.PHONY: help dev down logs reset seed test deploy-staging shell-api shell-db shell-frontend prereqs migrate clean status
 
 # Colors for output
 GREEN=\033[0;32m
@@ -57,12 +57,20 @@ dev: prereqs .env ## Start all services with health checks
 	@echo "$(GREEN)✅ Environment ready!$(NC)"
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo ""
-	@echo "$(BLUE)Service URLs:$(NC)"
-	@echo "  $(YELLOW)Frontend:$(NC)  http://localhost:$$(grep FRONTEND_PORT .env | cut -d '=' -f2 || echo 3000)"
-	@echo "  $(YELLOW)API:$(NC)       http://localhost:$$(grep API_PORT .env | cut -d '=' -f2 || echo 8000)"
-	@echo "  $(YELLOW)API Debug:$(NC) localhost:$$(grep DEBUG_PORT .env | cut -d '=' -f2 || echo 9229)"
-	@echo "  $(YELLOW)PostgreSQL:$(NC) localhost:$$(grep POSTGRES_PORT .env | cut -d '=' -f2 || echo 5432)"
-	@echo "  $(YELLOW)Redis:$(NC)     localhost:$$(grep REDIS_PORT .env | cut -d '=' -f2 || echo 6379)"
+	@echo "$(BLUE)📡 Service URLs:$(NC)"
+	@echo "  $(YELLOW)🎨 Frontend:$(NC)    http://localhost:$$(grep FRONTEND_PORT .env | cut -d '=' -f2 || echo 3000)"
+	@echo "  $(YELLOW)🚀 API:$(NC)          http://localhost:$$(grep API_PORT .env | cut -d '=' -f2 || echo 8000)"
+	@echo "  $(YELLOW)❤️  Health Check:$(NC) http://localhost:$$(grep API_PORT .env | cut -d '=' -f2 || echo 8000)/health"
+	@echo "  $(YELLOW)🐛 Debug Port:$(NC)   localhost:$$(grep DEBUG_PORT .env | cut -d '=' -f2 || echo 9229)"
+	@echo "  $(YELLOW)🗄️  PostgreSQL:$(NC)   localhost:$$(grep POSTGRES_PORT .env | cut -d '=' -f2 || echo 5432)"
+	@echo "  $(YELLOW)⚡ Redis:$(NC)        localhost:$$(grep REDIS_PORT .env | cut -d '=' -f2 || echo 6379)"
+	@echo ""
+	@echo "$(BLUE)💡 Quick Tips:$(NC)"
+	@echo "  • View logs:     $(YELLOW)make logs$(NC)"
+	@echo "  • Run tests:     $(YELLOW)make test$(NC)"
+	@echo "  • Load test data: $(YELLOW)make seed$(NC)"
+	@echo "  • API shell:     $(YELLOW)make shell-api$(NC)"
+	@echo "  • Full reset:    $(YELLOW)make reset$(NC)"
 	@echo ""
 
 down: ## Stop and remove all containers and volumes
@@ -96,6 +104,23 @@ shell-api: ## Open shell in API container
 
 shell-db: ## Open PostgreSQL shell
 	@$(DOCKER_COMPOSE) exec postgres psql -U $$(grep POSTGRES_USER .env | cut -d '=' -f2) -d $$(grep POSTGRES_DB .env | cut -d '=' -f2)
+
+shell-frontend: ## Open shell in frontend container
+	@$(DOCKER_COMPOSE) exec frontend sh
+
+migrate: ## Run database migrations manually
+	@echo "$(BLUE)Running database migrations...$(NC)"
+	@$(DOCKER_COMPOSE) exec api pnpm run migrate
+	@echo "$(GREEN)✓ Migrations complete$(NC)"
+
+clean: ## Clean up Docker resources
+	@echo "$(YELLOW)Cleaning up Docker resources...$(NC)"
+	@docker system prune -f
+	@echo "$(GREEN)✓ Cleanup complete$(NC)"
+
+status: ## Show status of all services
+	@echo "$(BLUE)Service Status:$(NC)"
+	@$(DOCKER_COMPOSE) ps
 
 deploy-staging: ## Deploy to staging Kubernetes cluster
 	@echo "$(BLUE)Deploying to staging...$(NC)"
