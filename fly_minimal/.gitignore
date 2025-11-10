@@ -1,0 +1,6 @@
+# Fly.io local files
+.fly/
+fly-local.toml
+
+# Logs
+*.log
