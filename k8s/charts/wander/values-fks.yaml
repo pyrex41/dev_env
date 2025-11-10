@@ -1,0 +1,120 @@
+# Fly Kubernetes (FKS) Configuration
+# Adapted for FKS beta limitations
+
+## API Configuration
+api:
+  replicaCount: 2  # Fixed replicas (no HPA on FKS)
+
+  image:
+    repository: registry.fly.io/CHANGE_ME/wander-api  # Update with your Fly.io org
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: LoadBalancer  # FKS supports LoadBalancer
+    port: 8000
+    annotations:
+      # Fly.io specific annotations (optional)
+      fly.io/force-https: "true"
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  env:
+    NODE_ENV: production
+    API_PORT: "8000"
+    # Database and Redis URLs from secrets
+    DATABASE_URL: ""  # Will use secret
+    REDIS_URL: ""     # Will use secret
+
+  # Note: Init containers not yet supported on FKS
+  # Run migrations as separate Job before deployment
+
+## Frontend Configuration
+frontend:
+  replicaCount: 2  # Fixed replicas
+
+  image:
+    repository: registry.fly.io/CHANGE_ME/wander-frontend  # Update with your Fly.io org
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: LoadBalancer
+    port: 3000
+    annotations:
+      fly.io/force-https: "true"
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  env:
+    NODE_ENV: production
+    VITE_API_URL: "https://your-api-url.fly.dev"  # Update after API deployment
+
+## PostgreSQL - Use Fly Postgres instead
+postgresql:
+  enabled: false
+  # Create with: fly postgres create --name wander-postgres
+  # Connection string stored in Kubernetes secret
+
+## Redis - Use Upstash or external Redis
+redis:
+  enabled: false
+  # Upstash Redis: https://console.upstash.com/
+  # Or Fly Redis (when available)
+  # Connection URL stored in Kubernetes secret
+
+## Ingress - Not needed (using LoadBalancer)
+ingress:
+  enabled: false
+
+## Autoscaling - Not supported on FKS
+autoscaling:
+  enabled: false
+
+## ServiceAccount
+serviceAccount:
+  create: true
+  name: wander-fks
+  annotations: {}
+
+## Security Context (simplified for FKS)
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+## Pod Security Context
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - ALL
+
+## Notes for FKS Deployment:
+#
+# 1. Update image repositories with your Fly.io org name
+# 2. Create Fly Postgres: fly postgres create
+# 3. Create secrets for DB and Redis connection strings
+# 4. Build and push images to registry.fly.io
+# 5. Run migrations as a separate Job before deployment
+# 6. Update VITE_API_URL with actual API LoadBalancer IP
+#
+# Known FKS limitations applied:
+# - No init containers (use separate migration Job)
+# - No HPA (use fixed replicas)
+# - No multi-container pods
+# - Simplified health checks
+# - No network policies

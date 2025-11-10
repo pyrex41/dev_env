@@ -327,10 +327,12 @@ The following production-ready features are included:
 ### Kubernetes Deployment
 - **Helm chart** ready for staging and production
 - **Local testing** with Minikube (free, no cloud costs!)
+- **Fly.io Kubernetes** (FKS) support for managed K8s on Fly.io
 - Deployment configurations for all 4 services (API, Frontend, PostgreSQL, Redis)
-- Environment-specific values files: `values-local.yaml`, `values-staging.yaml`, `values-prod.yaml`
+- Environment-specific values files: `values-local.yaml`, `values-fks.yaml`, `values-staging.yaml`, `values-prod.yaml`
 - Test locally: `make k8s-local-setup && make deploy-local`
-- Comprehensive documentation: `k8s/charts/wander/README.md` and `LOCAL_K8S_TESTING.md`
+- Deploy to FKS: `./scripts/fks-setup.sh && make deploy-fks`
+- Comprehensive documentation: `k8s/charts/wander/README.md`, `LOCAL_K8S_TESTING.md`, `FLY_KUBERNETES_SETUP.md`
 
 ## Database Schema
 

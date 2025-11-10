@@ -1,0 +1,125 @@
+# Database Migration Job for Fly Kubernetes
+# Run this BEFORE deploying the main Helm chart
+#
+# FKS doesn't support init containers yet, so we run migrations
+# as a separate Job that completes before the API starts.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wander-migrations
+  namespace: wander-fks
+  labels:
+    app: wander
+    component: migrations
+spec:
+  ttlSecondsAfterFinished: 300  # Cleanup after 5 minutes
+  backoffLimit: 3  # Retry up to 3 times on failure
+
+  template:
+    metadata:
+      labels:
+        app: wander
+        component: migrations
+
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+      - name: migrate
+        image: registry.fly.io/CHANGE_ME/wander-api:latest
+
+        command: ["pnpm", "run", "migrate"]
+
+        env:
+        - name: NODE_ENV
+          value: "production"
+
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: connection-string
+
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: url
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+
+---
+# Optional: Seed data job (run after migrations)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wander-seeds
+  namespace: wander-fks
+  labels:
+    app: wander
+    component: seeds
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+
+  template:
+    metadata:
+      labels:
+        app: wander
+        component: seeds
+
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+      - name: seed
+        image: registry.fly.io/CHANGE_ME/wander-api:latest
+
+        command: ["pnpm", "run", "seed"]
+
+        env:
+        - name: NODE_ENV
+          value: "production"
+
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: connection-string
+
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: url
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL

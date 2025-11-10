@@ -1,4 +1,4 @@
-.PHONY: help dev down logs reset seed test deploy-staging deploy-local k8s-local-setup shell-api shell-db shell-frontend prereqs migrate clean status
+.PHONY: help dev down logs reset seed test deploy-staging deploy-local deploy-fks k8s-local-setup shell-api shell-db shell-frontend prereqs migrate clean status
 
 # Colors for output
 GREEN=\033[0;32m
@@ -166,6 +166,36 @@ deploy-local: ## Deploy to local Minikube cluster
 	@echo "  • View logs (API):  $(YELLOW)kubectl logs -f -n wander-local -l app=wander-api$(NC)"
 	@echo "  • Delete deploy:    $(YELLOW)helm uninstall wander-local -n wander-local$(NC)"
 	@echo "  • Stop Minikube:    $(YELLOW)minikube stop$(NC)"
+
+deploy-fks: ## Deploy to Fly Kubernetes (FKS)
+	@echo "$(BLUE)Deploying to Fly Kubernetes...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Prerequisites check:$(NC)"
+	@command -v flyctl >/dev/null 2>&1 || { echo "$(RED)✗ flyctl not installed$(NC)"; echo "  Install: brew install flyctl"; exit 1; }
+	@kubectl config current-context | grep -q "fks-" || { echo "$(RED)✗ Not connected to FKS cluster$(NC)"; echo "  See FLY_KUBERNETES_SETUP.md"; exit 1; }
+	@echo "$(GREEN)✓ Prerequisites OK$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Running migrations...$(NC)"
+	@kubectl apply -f k8s/fks-migration-job.yaml
+	@kubectl wait --for=condition=complete job/wander-migrations -n wander-fks --timeout=5m || { echo "$(RED)✗ Migrations failed$(NC)"; exit 1; }
+	@echo "$(GREEN)✓ Migrations complete$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Deploying Helm chart...$(NC)"
+	@helm upgrade --install wander-fks ./k8s/charts/wander \
+		--namespace wander-fks \
+		--create-namespace \
+		--values ./k8s/charts/wander/values-fks.yaml \
+		--wait \
+		--timeout 10m
+	@echo "$(GREEN)✓ Deployed to FKS$(NC)"
+	@echo ""
+	@echo "$(BLUE)📡 Get service URLs:$(NC)"
+	@echo "  $(YELLOW)kubectl get svc -n wander-fks$(NC)"
+	@echo ""
+	@echo "$(BLUE)💡 Useful commands:$(NC)"
+	@echo "  • View pods:        $(YELLOW)kubectl get pods -n wander-fks$(NC)"
+	@echo "  • View logs (API):  $(YELLOW)kubectl logs -l app=wander-api -n wander-fks$(NC)"
+	@echo "  • Delete deploy:    $(YELLOW)helm uninstall wander-fks -n wander-fks$(NC)"
 
 deploy-staging: ## Deploy to staging Kubernetes cluster
 	@echo "$(BLUE)Deploying to staging...$(NC)"
