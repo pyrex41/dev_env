@@ -326,9 +326,11 @@ The following production-ready features are included:
 
 ### Kubernetes Deployment
 - **Helm chart** ready for staging and production
+- **Local testing** with Minikube (free, no cloud costs!)
 - Deployment configurations for all 4 services (API, Frontend, PostgreSQL, Redis)
-- Environment-specific values files: `values-staging.yaml` and `values-prod.yaml`
-- Comprehensive documentation: `k8s/charts/wander/README.md`
+- Environment-specific values files: `values-local.yaml`, `values-staging.yaml`, `values-prod.yaml`
+- Test locally: `make k8s-local-setup && make deploy-local`
+- Comprehensive documentation: `k8s/charts/wander/README.md` and `LOCAL_K8S_TESTING.md`
 
 ## Database Schema
 

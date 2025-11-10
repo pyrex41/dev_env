@@ -1,4 +1,4 @@
-.PHONY: help dev down logs reset seed test deploy-staging shell-api shell-db shell-frontend prereqs migrate clean status
+.PHONY: help dev down logs reset seed test deploy-staging deploy-local k8s-local-setup shell-api shell-db shell-frontend prereqs migrate clean status
 
 # Colors for output
 GREEN=\033[0;32m
@@ -121,6 +121,51 @@ clean: ## Clean up Docker resources
 status: ## Show status of all services
 	@echo "$(BLUE)Service Status:$(NC)"
 	@$(DOCKER_COMPOSE) ps
+
+k8s-local-setup: ## Set up local Kubernetes testing with Minikube
+	@echo "$(BLUE)Setting up local Kubernetes environment...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 1: Install tools (if needed)$(NC)"
+	@command -v minikube >/dev/null 2>&1 || { echo "  Installing minikube..."; brew install minikube; }
+	@command -v kubectl >/dev/null 2>&1 || { echo "  Installing kubectl..."; brew install kubectl; }
+	@echo "$(GREEN)✓ Tools installed$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 2: Start Minikube$(NC)"
+	@minikube status >/dev/null 2>&1 || minikube start --cpus=4 --memory=8192 --disk-size=40g
+	@echo "$(GREEN)✓ Minikube running$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 3: Build images$(NC)"
+	@eval $$(minikube docker-env) && \
+		docker build -t wander-api:local ./api && \
+		docker build -t wander-frontend:local ./frontend
+	@echo "$(GREEN)✓ Images built$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ Local K8s environment ready!$(NC)"
+	@echo "$(BLUE)Next: Run 'make deploy-local' to deploy$(NC)"
+
+deploy-local: ## Deploy to local Minikube cluster
+	@echo "$(BLUE)Deploying to local Minikube...$(NC)"
+	@echo ""
+	@minikube status >/dev/null 2>&1 || { echo "$(RED)✗ Minikube not running$(NC)"; echo "$(YELLOW)Run 'make k8s-local-setup' first$(NC)"; exit 1; }
+	@echo "$(YELLOW)Installing/upgrading Helm chart...$(NC)"
+	@helm upgrade --install wander-local ./k8s/charts/wander \
+		--namespace wander-local \
+		--create-namespace \
+		--values ./k8s/charts/wander/values-local.yaml \
+		--wait \
+		--timeout 5m
+	@echo "$(GREEN)✓ Deployed to Minikube$(NC)"
+	@echo ""
+	@echo "$(BLUE)📡 Access your services:$(NC)"
+	@echo "  $(YELLOW)Frontend:$(NC) minikube service wander-local-frontend -n wander-local --url"
+	@echo "  $(YELLOW)API:$(NC)      minikube service wander-local-api -n wander-local --url"
+	@echo ""
+	@echo "$(BLUE)💡 Useful commands:$(NC)"
+	@echo "  • View pods:        $(YELLOW)kubectl get pods -n wander-local$(NC)"
+	@echo "  • View services:    $(YELLOW)kubectl get svc -n wander-local$(NC)"
+	@echo "  • View logs (API):  $(YELLOW)kubectl logs -f -n wander-local -l app=wander-api$(NC)"
+	@echo "  • Delete deploy:    $(YELLOW)helm uninstall wander-local -n wander-local$(NC)"
+	@echo "  • Stop Minikube:    $(YELLOW)minikube stop$(NC)"
 
 deploy-staging: ## Deploy to staging Kubernetes cluster
 	@echo "$(BLUE)Deploying to staging...$(NC)"
