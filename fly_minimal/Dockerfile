@@ -65,6 +65,15 @@ RUN cd /home/testuser && \
     cp .env.local.example .env && \
     chown -R testuser:testuser /home/testuser/dev_env
 
+# Pre-pull Docker images to avoid network issues during docker-compose up
+# This runs during the Fly.io build, not at runtime
+RUN service docker start && \
+    sleep 5 && \
+    docker pull postgres:16 && \
+    docker pull redis:7 && \
+    docker pull node:20-alpine && \
+    service docker stop
+
 # Expose SSH port (Fly's proxy handles SSH)
 EXPOSE 22
 
