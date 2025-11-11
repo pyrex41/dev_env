@@ -46,8 +46,8 @@ RUN echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH1mrjS7oLScUIJjifcMRi/Zm/BAcZbUiA
 RUN mkdir -p /home/testuser/workspace \
     && chown testuser:testuser /home/testuser/workspace
 
-# Expose SSH port
+# Expose SSH port (Fly's proxy handles SSH)
 EXPOSE 22
 
-# Start SSH daemon
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+# Keep container running (Fly's SSH proxy handles connections)
+CMD ["/bin/sh", "-c", "while true; do sleep 3600; done"]
