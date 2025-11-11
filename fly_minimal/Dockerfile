@@ -65,18 +65,42 @@ RUN cd /home/testuser && \
     cp .env.local.example .env && \
     chown -R testuser:testuser /home/testuser/dev_env
 
-# Pre-pull Docker images to avoid network issues during docker-compose up
-# This runs during the Fly.io build, not at runtime
-RUN service docker start && \
-    sleep 5 && \
-    docker pull postgres:16 && \
-    docker pull redis:7 && \
-    docker pull node:20-alpine && \
-    service docker stop
+# Create startup script to pre-pull images on first boot
+RUN cat > /usr/local/bin/startup.sh << 'EOF'
+#!/bin/bash
+# Start Docker daemon
+service docker start
+
+# Wait for Docker to be ready
+timeout=30
+elapsed=0
+while [ $elapsed -lt $timeout ]; do
+    if docker info >/dev/null 2>&1; then
+        echo "Docker daemon is ready"
+        break
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+done
+
+# Pre-pull Docker images in background to avoid blocking SSH
+(
+    echo "Pre-pulling Docker images..."
+    docker pull postgres:16 &
+    docker pull redis:7 &
+    docker pull node:20-alpine &
+    wait
+    echo "Docker images pre-pulled successfully"
+) > /tmp/docker-pull.log 2>&1 &
+
+# Keep container running
+tail -f /dev/null
+EOF
+
+RUN chmod +x /usr/local/bin/startup.sh
 
 # Expose SSH port (Fly's proxy handles SSH)
 EXPOSE 22
 
 # Start Docker daemon and keep container running
-# Note: Docker-in-Docker requires privileged mode
-CMD service docker start && tail -f /dev/null
+CMD ["/usr/local/bin/startup.sh"]
