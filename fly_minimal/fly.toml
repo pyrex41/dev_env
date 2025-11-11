@@ -1,17 +1,20 @@
-# fly.toml app configuration file generated for wander-test-minimal on 2025-11-10T16:57:27-06:00
+# fly.toml app configuration file for dev_env minimal deployment
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'wander-test-minimal'
+app = 'dev-env-minimal'
 primary_region = 'dfw'
 
 # Build configuration
-# Option 1: Build from Dockerfile (default for first-time setup)
-# Option 2: Use pre-built image after running ./create-prebuilt.sh
+# Fly will automatically build from Dockerfile using remote builder
 [build]
-  dockerfile = 'Dockerfile'
-  # image = 'registry.fly.io/wander-test-minimal:deployment-XXXXX'  # Use this after running create-prebuilt.sh
+
+# Auto-stop configuration - single machine that stops when idle
+[http_service]
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
 
 # No HTTP service needed - this is an SSH-only machine
 # Fly's SSH proxy handles all connections

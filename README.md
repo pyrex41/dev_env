@@ -6,20 +6,80 @@ A complete multi-service development environment that "just works" on any machin
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Choose Your Path
+
+### For Local Development (Recommended) 👈
+
+**This is what you want for daily development work on Mac or Linux:**
+
+```bash
+# 1. Clone the repo
+git clone <your-repo-url>
+cd wander-dev-env
+
+# 2. Run interactive setup (installs Docker if needed)
+./setup.sh
+
+# 3. Start developing!
+make dev
+```
+
+**Or if you already have Docker:**
+```bash
+cp .env.local.example .env && make dev
+```
+
+**Visit http://localhost:3000** to see your app running!
+
+**Why this approach?**
+- ⚡ **Fast**: Services start in ~10 seconds, hot reload works instantly
+- 🐛 **Easy debugging**: Direct access to all services
+- 💻 **Native performance**: No container-in-container overhead
+- 🔧 **IDE friendly**: VSCode, debuggers, and linters work seamlessly
+
+---
+
+### For Fly.io Deployment Only 🚀
+
+**Only use this if you're deploying to Fly.io's cloud platform:**
+
+See [`fly_minimal/README.md`](fly_minimal/README.md) for deployment instructions.
+
+**Note**: The fly_minimal setup is NOT recommended for local development. It's optimized for cloud deployment, not daily coding work.
+
+---
+
+## 📊 Setup Options Comparison
+
+| Feature | **Native Setup** (setup.sh) | fly_minimal (Fly.io) |
+|---------|-------------|------------------|
+| **Best for** | ✅ Daily development | ✅ Cloud deployment |
+| **Startup time** | ~10 seconds | ~30-60 seconds |
+| **Hot reload** | ✅ Instant | ⚠️ Slow (nested containers) |
+| **IDE integration** | ✅ Perfect | ⚠️ Complex |
+| **Debugging** | ✅ Direct access | ⚠️ Port forwarding needed |
+| **Resource usage** | 2-4 GB RAM | 6-8 GB RAM |
+| **File watching** | ✅ Native FS | ⚠️ Multiple layers |
+| **Performance** | ✅ Native | ⚠️ Container overhead |
+| **Use when** | Coding on Mac/Linux | Deploying to Fly.io |
+
+**TL;DR**: Use `./setup.sh` and `make dev` for local development. Only use `fly_minimal` when deploying to Fly.io.
+
+---
+
+## 🎯 What You Get (With Local Setup)
 
 ### Three Commands to Running App
 
 ```bash
 git clone <your-repo-url>
 cd wander-dev-env
-cp .env.local.example .env && make dev
+./setup.sh
 ```
 
-**That's it!** Visit http://localhost:3000 to see your app.
-
-**First time?** The setup will:
-- ✅ Check Docker is installed and running
+**The setup script will:**
+- ✅ Check Docker is installed (installs if missing)
+- ✅ Start Docker daemon (Colima on Mac, native on Linux)
 - ✅ Validate your configuration
 - ✅ Start all services (Frontend, API, PostgreSQL, Redis)
 - ✅ Run database migrations

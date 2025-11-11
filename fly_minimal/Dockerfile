@@ -1,5 +1,5 @@
-# Simple Debian image with Docker pre-installed and repo cloned
-# Ready for immediate "make dev" usage
+# Simple Debian image with Docker pre-installed
+# Ready for development work
 
 FROM debian:bookworm-slim
 
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     make \
     gnupg \
     lsb-release \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker (official Docker repository)
@@ -29,6 +30,11 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
     rm -rf /var/lib/apt/lists/*
+
+# Add smart Docker startup script
+# Tries overlay2 first (best performance), falls back to vfs if needed
+COPY start-docker.sh /usr/local/bin/start-docker.sh
+RUN chmod +x /usr/local/bin/start-docker.sh
 
 # Configure SSH with Fly.io certificate authority
 RUN mkdir -p /var/run/sshd && \
@@ -57,15 +63,8 @@ RUN echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH1mrjS7oLScUIJjifcMRi/Zm/BAcZbUiA
     chown testuser:testuser /home/testuser/.ssh/authorized_keys && \
     chmod 600 /home/testuser/.ssh/authorized_keys
 
-# Clone the dev_env repository and set up .env
-RUN cd /home/testuser && \
-    git clone https://github.com/pyrex41/dev_env.git && \
-    cd dev_env && \
-    cp .env.local.example .env && \
-    chown -R testuser:testuser /home/testuser/dev_env
-
 # Expose SSH port
 EXPOSE 22
 
-# Start Docker daemon and keep container running
-CMD service docker start && tail -f /dev/null
+# Start Docker daemon with smart storage driver detection and keep container running
+CMD /usr/local/bin/start-docker.sh && tail -f /dev/null
