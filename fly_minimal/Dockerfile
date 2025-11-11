@@ -66,38 +66,35 @@ RUN cd /home/testuser && \
     chown -R testuser:testuser /home/testuser/dev_env
 
 # Create startup script to pre-pull images on first boot
-RUN cat > /usr/local/bin/startup.sh << 'EOF'
-#!/bin/bash
-# Start Docker daemon
-service docker start
-
-# Wait for Docker to be ready
-timeout=30
-elapsed=0
-while [ $elapsed -lt $timeout ]; do
-    if docker info >/dev/null 2>&1; then
-        echo "Docker daemon is ready"
-        break
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-done
-
-# Pre-pull Docker images in background to avoid blocking SSH
-(
-    echo "Pre-pulling Docker images..."
-    docker pull postgres:16 &
-    docker pull redis:7 &
-    docker pull node:20-alpine &
-    wait
-    echo "Docker images pre-pulled successfully"
-) > /tmp/docker-pull.log 2>&1 &
-
-# Keep container running
-tail -f /dev/null
-EOF
-
-RUN chmod +x /usr/local/bin/startup.sh
+RUN echo '#!/bin/bash' > /usr/local/bin/startup.sh && \
+    echo '# Start Docker daemon' >> /usr/local/bin/startup.sh && \
+    echo 'service docker start' >> /usr/local/bin/startup.sh && \
+    echo '' >> /usr/local/bin/startup.sh && \
+    echo '# Wait for Docker to be ready' >> /usr/local/bin/startup.sh && \
+    echo 'timeout=30' >> /usr/local/bin/startup.sh && \
+    echo 'elapsed=0' >> /usr/local/bin/startup.sh && \
+    echo 'while [ $elapsed -lt $timeout ]; do' >> /usr/local/bin/startup.sh && \
+    echo '    if docker info >/dev/null 2>&1; then' >> /usr/local/bin/startup.sh && \
+    echo '        echo "Docker daemon is ready"' >> /usr/local/bin/startup.sh && \
+    echo '        break' >> /usr/local/bin/startup.sh && \
+    echo '    fi' >> /usr/local/bin/startup.sh && \
+    echo '    sleep 1' >> /usr/local/bin/startup.sh && \
+    echo '    elapsed=$((elapsed + 1))' >> /usr/local/bin/startup.sh && \
+    echo 'done' >> /usr/local/bin/startup.sh && \
+    echo '' >> /usr/local/bin/startup.sh && \
+    echo '# Pre-pull Docker images in background to avoid blocking SSH' >> /usr/local/bin/startup.sh && \
+    echo '(' >> /usr/local/bin/startup.sh && \
+    echo '    echo "Pre-pulling Docker images..."' >> /usr/local/bin/startup.sh && \
+    echo '    docker pull postgres:16 &' >> /usr/local/bin/startup.sh && \
+    echo '    docker pull redis:7 &' >> /usr/local/bin/startup.sh && \
+    echo '    docker pull node:20-alpine &' >> /usr/local/bin/startup.sh && \
+    echo '    wait' >> /usr/local/bin/startup.sh && \
+    echo '    echo "Docker images pre-pulled successfully"' >> /usr/local/bin/startup.sh && \
+    echo ') > /tmp/docker-pull.log 2>&1 &' >> /usr/local/bin/startup.sh && \
+    echo '' >> /usr/local/bin/startup.sh && \
+    echo '# Keep container running' >> /usr/local/bin/startup.sh && \
+    echo 'tail -f /dev/null' >> /usr/local/bin/startup.sh && \
+    chmod +x /usr/local/bin/startup.sh
 
 # Expose SSH port (Fly's proxy handles SSH)
 EXPOSE 22
