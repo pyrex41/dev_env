@@ -248,7 +248,7 @@ echo ""
 # Next steps
 if [ "$DO_COLIMA" = true ]; then
     echo -e "${BLUE}To start again:${NC}"
-    echo -e "  ${CYAN}1)${NC} colima start"
+    echo -e "  ${CYAN}1)${NC} colima start ${YELLOW}(or run ./setup.sh)${NC}"
     echo -e "  ${CYAN}2)${NC} make dev"
 elif [ "$DO_VOLUMES" = true ]; then
     echo -e "${BLUE}To start again:${NC}"
