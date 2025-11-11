@@ -1,10 +1,10 @@
-# Lean Debian slim image for testing setup scripts
-# Based on Debian Bookworm slim (~80MB base image)
+# Pre-configured Debian image for zero-to-running dev environment testing
+# Based on Debian Bookworm slim with Docker pre-installed
 # NO PERSISTENT STORAGE - Fresh start every deployment
 
 FROM debian:bookworm-slim
 
-# Install OpenSSH, Fish shell, and basic utilities
+# Install base utilities and dependencies
 RUN apt-get update && apt-get install -y \
     openssh-server \
     bash \
@@ -15,7 +15,21 @@ RUN apt-get update && apt-get install -y \
     sudo \
     ca-certificates \
     make \
+    gnupg \
+    lsb-release \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Docker (official Docker repository)
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*
 
 # Configure SSH with Fly.io certificate authority
 RUN mkdir -p /var/run/sshd \
@@ -31,7 +45,8 @@ RUN echo 'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAA
 # Create test user with sudo access (default to Fish shell)
 RUN adduser --disabled-password --gecos "" --shell /usr/bin/fish testuser \
     && echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser \
-    && chmod 0440 /etc/sudoers.d/testuser
+    && chmod 0440 /etc/sudoers.d/testuser \
+    && usermod -aG docker testuser
 
 # Set up SSH directory for test user
 RUN mkdir -p /home/testuser/.ssh \
@@ -43,12 +58,16 @@ RUN echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH1mrjS7oLScUIJjifcMRi/Zm/BAcZbUiA
     && chown testuser:testuser /home/testuser/.ssh/authorized_keys \
     && chmod 600 /home/testuser/.ssh/authorized_keys
 
-# Create working directory
-RUN mkdir -p /home/testuser/workspace \
-    && chown testuser:testuser /home/testuser/workspace
+# Clone the dev_env repository and set up .env
+RUN cd /home/testuser && \
+    git clone https://github.com/pyrex41/dev_env.git && \
+    cd dev_env && \
+    cp .env.local.example .env && \
+    chown -R testuser:testuser /home/testuser/dev_env
 
 # Expose SSH port (Fly's proxy handles SSH)
 EXPOSE 22
 
-# Keep container running (Fly's SSH proxy handles connections)
-CMD ["/bin/sh", "-c", "while true; do sleep 3600; done"]
+# Start Docker daemon and keep container running
+# Note: Docker-in-Docker requires privileged mode
+CMD service docker start && tail -f /dev/null

@@ -20,5 +20,12 @@ primary_region = 'dfw'
     port = 22
 
 [[vm]]
-  size = 'shared-cpu-1x'
-  memory = '256mb'
+  size = 'shared-cpu-2x'
+  memory = '2048mb'
+
+# Enable Docker-in-Docker support
+[experimental]
+  auto_rollback = true
+
+[env]
+  DOCKER_HOST = "unix:///var/run/docker.sock"
