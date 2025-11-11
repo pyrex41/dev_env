@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     git \
     sudo \
     ca-certificates \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH with Fly.io certificate authority
