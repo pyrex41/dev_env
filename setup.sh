@@ -2,6 +2,7 @@
 
 # Interactive Setup Script for Wander Dev Environment
 # This script walks you through setting up all prerequisites
+# Supports: macOS (with Colima) and Linux (Ubuntu/Debian/Alpine)
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -23,6 +24,27 @@ echo -e "${BLUE}║                                                            �
 echo -e "${BLUE}║        Wander Dev Environment - Interactive Setup          ║${NC}"
 echo -e "${BLUE}║                                                            ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Detect OS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS_TYPE="macos"
+    echo -e "${CYAN}Detected OS:${NC} macOS"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    OS_TYPE="linux"
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        LINUX_DISTRO=$ID
+        echo -e "${CYAN}Detected OS:${NC} Linux ($LINUX_DISTRO)"
+    else
+        echo -e "${CYAN}Detected OS:${NC} Linux"
+        LINUX_DISTRO="unknown"
+    fi
+else
+    echo -e "${RED}✗ Unsupported OS: $OSTYPE${NC}"
+    exit 1
+fi
+
 echo ""
 
 # Function to wait for user
@@ -71,26 +93,74 @@ if command_exists docker; then
 else
     echo -e "${CROSSMARK} Docker is not installed"
     echo ""
-    echo -e "${YELLOW}Would you like to install Docker Desktop? (y/n)${NC}"
-    read -r install_docker
 
-    if [[ "$install_docker" =~ ^[Yy]$ ]]; then
-        if command_exists brew; then
-            echo -e "${ARROW} Installing Docker Desktop via Homebrew..."
-            brew install --cask docker
-            echo -e "${CHECKMARK} Docker Desktop installed!"
-            echo ""
-            echo -e "${YELLOW}Please open Docker Desktop from your Applications folder${NC}"
-            echo -e "${YELLOW}Look for the whale icon in your menu bar${NC}"
-            wait_for_enter
+    if [ "$OS_TYPE" = "linux" ]; then
+        echo -e "${YELLOW}Would you like to install Docker? (y/n)${NC}"
+        read -r install_docker
+
+        if [[ "$install_docker" =~ ^[Yy]$ ]]; then
+            case $LINUX_DISTRO in
+                ubuntu|debian)
+                    echo -e "${ARROW} Installing Docker on Ubuntu/Debian..."
+                    sudo apt-get update
+                    sudo apt-get install -y ca-certificates curl gnupg
+                    sudo install -m 0755 -d /etc/apt/keyrings
+                    curl -fsSL https://download.docker.com/linux/$LINUX_DISTRO/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+                    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+                    echo \
+                      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$LINUX_DISTRO \
+                      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+                      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+                    sudo apt-get update
+                    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+                    # Add current user to docker group
+                    sudo usermod -aG docker $USER
+                    echo -e "${CHECKMARK} Docker installed successfully"
+                    echo -e "${YELLOW}⚠ You may need to log out and back in for docker group to take effect${NC}"
+                    echo -e "${YELLOW}Or run: newgrp docker${NC}"
+                    ;;
+
+                alpine)
+                    echo -e "${ARROW} Installing Docker on Alpine..."
+                    sudo apk add --no-cache docker docker-compose
+                    sudo rc-update add docker boot
+                    sudo service docker start
+                    sudo addgroup $USER docker
+                    echo -e "${CHECKMARK} Docker installed successfully"
+                    ;;
+
+                *)
+                    echo -e "${RED}✗ Unsupported Linux distribution: $LINUX_DISTRO${NC}"
+                    echo -e "Please install Docker manually: https://docs.docker.com/engine/install/"
+                    exit 1
+                    ;;
+            esac
         else
-            echo -e "${RED}Homebrew is not installed. Please install Docker Desktop manually from:${NC}"
-            echo -e "${CYAN}https://www.docker.com/products/docker-desktop${NC}"
+            echo -e "${RED}Docker is required to run the development environment${NC}"
             exit 1
         fi
     else
-        echo -e "${RED}Docker is required to run the development environment${NC}"
-        exit 1
+        # macOS
+        echo -e "${YELLOW}Would you like to install Docker? (y/n)${NC}"
+        read -r install_docker
+
+        if [[ "$install_docker" =~ ^[Yy]$ ]]; then
+            if command_exists brew; then
+                echo -e "${ARROW} Installing Docker CLI via Homebrew..."
+                brew install docker
+                echo -e "${CHECKMARK} Docker CLI installed!"
+            else
+                echo -e "${RED}Homebrew is not installed.${NC}"
+                echo -e "Install Homebrew from: ${CYAN}https://brew.sh${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${RED}Docker is required to run the development environment${NC}"
+            exit 1
+        fi
     fi
 fi
 
@@ -108,80 +178,98 @@ else
     echo -e "${CROSSMARK} Docker daemon is not running"
     echo ""
 
-    # Check if Colima is installed
-    if command_exists colima; then
-        echo -e "${YELLOW}Would you like me to start Colima for you? (y/n)${NC}"
-        read -r start_colima
-
-        if [[ "$start_colima" =~ ^[Yy]$ ]]; then
-            echo -e "${ARROW} Starting Colima..."
-            colima start --cpu 4 --memory 8 --disk 60
-
+    if [ "$OS_TYPE" = "linux" ]; then
+        # On Linux, start the Docker service
+        echo -e "${ARROW} Starting Docker service..."
+        if sudo service docker start 2>/dev/null || sudo systemctl start docker 2>/dev/null; then
             if wait_for_docker; then
-                echo -e "${CHECKMARK} Colima started successfully!"
+                echo -e "${CHECKMARK} Docker daemon started successfully!"
             else
-                echo -e "${RED}Docker daemon did not start. Please start Colima manually:${NC}"
-                echo -e "  colima start"
+                echo -e "${RED}Docker daemon did not start.${NC}"
+                echo -e "Try running: ${CYAN}sudo service docker start${NC}"
                 exit 1
             fi
         else
-            echo -e "${YELLOW}Please start Colima manually:${NC}"
-            echo -e "  colima start"
-            echo ""
-            echo -e "${YELLOW}When Colima is running, press Enter to continue...${NC}"
-            read -r
-
-            if ! docker info >/dev/null 2>&1; then
-                echo -e "${RED}Docker daemon is still not running. Exiting.${NC}"
-                exit 1
-            fi
+            echo -e "${RED}Could not start Docker daemon.${NC}"
+            echo -e "Try running: ${CYAN}sudo service docker start${NC}"
+            exit 1
         fi
     else
-        # Colima not installed
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${YELLOW}⚠  Colima Not Found${NC}"
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo ""
-        echo -e "${CYAN}You have Docker CLI but Colima is missing.${NC}"
-        echo ""
-        echo -e "Colima provides a lightweight Docker runtime for macOS."
-        echo -e "It's faster and uses less resources than Docker Desktop."
-        echo ""
-        echo -e "${CYAN}Think of it like:${NC}"
-        echo -e "  ${GREEN}Docker CLI${NC} = steering wheel (what you have)"
-        echo -e "  ${GREEN}Colima${NC}     = the engine (what you need)"
-        echo ""
-        echo -e "${YELLOW}Would you like to install Colima now? (y/n)${NC}"
-        read -r install_colima
+        # macOS - need Colima
+        # Check if Colima is installed
+        if command_exists colima; then
+            echo -e "${YELLOW}Would you like me to start Colima for you? (y/n)${NC}"
+            read -r start_colima
 
-        if [[ "$install_colima" =~ ^[Yy]$ ]]; then
-            if command_exists brew; then
-                echo -e "${ARROW} Installing Colima via Homebrew..."
-                echo -e "${CYAN}This may take a few minutes...${NC}"
-                echo ""
-                brew install colima
-                echo ""
-                echo -e "${CHECKMARK} Colima installed!"
-                echo ""
+            if [[ "$start_colima" =~ ^[Yy]$ ]]; then
                 echo -e "${ARROW} Starting Colima..."
                 colima start --cpu 4 --memory 8 --disk 60
 
                 if wait_for_docker; then
                     echo -e "${CHECKMARK} Colima started successfully!"
                 else
-                    echo -e "${RED}Colima did not start. Please run:${NC}"
+                    echo -e "${RED}Docker daemon did not start. Please start Colima manually:${NC}"
                     echo -e "  colima start"
                     exit 1
                 fi
             else
-                echo -e "${RED}Homebrew is not installed. Please install Docker Desktop manually from:${NC}"
-                echo -e "${CYAN}https://www.docker.com/products/docker-desktop${NC}"
-                exit 1
+                echo -e "${YELLOW}Please start Colima manually:${NC}"
+                echo -e "  colima start"
+                echo ""
+                echo -e "${YELLOW}When Colima is running, press Enter to continue...${NC}"
+                read -r
+
+                if ! docker info >/dev/null 2>&1; then
+                    echo -e "${RED}Docker daemon is still not running. Exiting.${NC}"
+                    exit 1
+                fi
             fi
         else
-            echo -e "${RED}Docker Desktop is required to run the Docker daemon.${NC}"
-            echo -e "${YELLOW}Alternative: Install manually from ${CYAN}https://www.docker.com/products/docker-desktop${NC}"
-            exit 1
+            # Colima not installed on macOS
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠  Colima Not Found${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            echo -e "${CYAN}You have Docker CLI but Colima is missing.${NC}"
+            echo ""
+            echo -e "Colima provides a lightweight Docker runtime for macOS."
+            echo -e "It's faster and uses less resources than Docker Desktop."
+            echo ""
+            echo -e "${CYAN}Think of it like:${NC}"
+            echo -e "  ${GREEN}Docker CLI${NC} = steering wheel (what you have)"
+            echo -e "  ${GREEN}Colima${NC}     = the engine (what you need)"
+            echo ""
+            echo -e "${YELLOW}Would you like to install Colima now? (y/n)${NC}"
+            read -r install_colima
+
+            if [[ "$install_colima" =~ ^[Yy]$ ]]; then
+                if command_exists brew; then
+                    echo -e "${ARROW} Installing Colima via Homebrew..."
+                    echo -e "${CYAN}This may take a few minutes...${NC}"
+                    echo ""
+                    brew install colima
+                    echo ""
+                    echo -e "${CHECKMARK} Colima installed!"
+                    echo ""
+                    echo -e "${ARROW} Starting Colima..."
+                    colima start --cpu 4 --memory 8 --disk 60
+
+                    if wait_for_docker; then
+                        echo -e "${CHECKMARK} Colima started successfully!"
+                    else
+                        echo -e "${RED}Colima did not start. Please run:${NC}"
+                        echo -e "  colima start"
+                        exit 1
+                    fi
+                else
+                    echo -e "${RED}Homebrew is not installed.${NC}"
+                    echo -e "Install Homebrew from: ${CYAN}https://brew.sh${NC}"
+                    exit 1
+                fi
+            else
+                echo -e "${RED}Colima is required to run Docker on macOS.${NC}"
+                exit 1
+            fi
         fi
     fi
 fi
@@ -281,12 +369,16 @@ echo ""
 if [ -f .env ]; then
     echo -e "${CHECKMARK} .env file already exists"
 else
-    echo -e "${ARROW} Creating .env from .env.example..."
-    cp .env.example .env
+    echo -e "${ARROW} Creating .env from .env.local.example (safe dev defaults)..."
+    if [ -f .env.local.example ]; then
+        cp .env.local.example .env
+    else
+        cp .env.example .env
+    fi
     echo -e "${CHECKMARK} .env file created"
     echo ""
-    echo -e "${YELLOW}⚠ Important: The .env file contains default passwords${NC}"
-    echo -e "${YELLOW}  These are fine for local development but should be changed for production${NC}"
+    echo -e "${YELLOW}⚠ Important: Using development passwords${NC}"
+    echo -e "${YELLOW}  These are fine for local dev but MUST be changed for production${NC}"
 fi
 
 echo ""
