@@ -6,14 +6,15 @@
 app = 'wander-test-minimal'
 primary_region = 'dfw'
 
-# Option 1: Build from Dockerfile (slower, rebuilds each time)
+# Option 1: Use pre-built image from registry (RECOMMENDED - instant deploys)
+# Run ./build-and-push.sh to build and push the prebuilt image
 [build]
-  dockerfile = 'Dockerfile'
+  image = 'registry.fly.io/wander-test-minimal:prebuilt'
 
-# Option 2: Use pre-built image from registry (faster)
-# Uncomment this and comment out [build] section above to use cached image
+# Option 2: Build from Dockerfile (slower, rebuilds each time, images pulled at runtime)
+# Uncomment this and comment out [build] section above to build from scratch
 # [build]
-#   image = 'registry.fly.io/wander-test-minimal:latest'
+#   dockerfile = 'Dockerfile'
 
 # No HTTP service needed - this is an SSH-only machine
 # Fly's SSH proxy handles all connections

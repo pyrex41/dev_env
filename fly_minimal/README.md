@@ -1,52 +1,50 @@
-# Fly Minimal - Lean Linux Test Machine
+# Fly Minimal - Pre-configured Dev Environment
 
-A minimal Alpine Linux machine on Fly.io for testing "zero-to-running" setup scripts.
+A pre-configured Debian machine on Fly.io with Docker and all images pre-pulled for instant "zero-to-running" demos.
 
 **NO PERSISTENT STORAGE** - Fresh, clean start every time you redeploy. Perfect for demos.
 
-## Quick Demo: Zero-to-Running on Clean Linux
+## Quick Demo: Instant Zero-to-Running
 
-This demonstrates the entire "zero-to-running" workflow on a pristine Linux machine:
+Everything is pre-installed and ready to go:
 
 ```bash
-# 1. SSH into fresh Fly.io machine
+# 1. SSH into the machine
 fly ssh console -a wander-test-minimal
 
-# 2. Run the bootstrap script (installs Docker, clones repo, runs make dev)
-curl -fsSL https://raw.githubusercontent.com/your-org/wander-dev-env/master/fly_minimal/bootstrap.sh | bash
+# 2. Start the dev environment (everything is already set up!)
+cd /home/testuser/dev_env
+make dev
 
-# 3. Wait ~5-10 minutes for services to start
-# 4. Verify all services are healthy at http://localhost:3000
+# 3. Services start in ~30 seconds (images are pre-pulled)
 ```
 
-**What the bootstrap script does:**
-1. Installs Docker on clean Linux (Ubuntu/Alpine)
-2. Installs Git
-3. Clones the repository
-4. Creates `.env` from safe defaults
-5. Runs `make dev`
-6. Verifies all services are healthy
+**Pre-installed:**
+- ✅ Docker CE with Docker Compose v2
+- ✅ Repository cloned at `/home/testuser/dev_env`
+- ✅ Environment configured (`.env` from safe defaults)
+- ✅ All Docker images pre-pulled (postgres:16, redis:7, node:20-alpine)
 
-Total time: **~10 minutes** from bare Linux to running app!
+Total time: **~30 seconds** to running app!
 
 ## Configuration
 
-- **Image**: Alpine Linux 3.19 (~50MB with SSH/tools)
+- **Image**: Debian Bookworm Slim + Docker (~1.5GB with pre-pulled images)
 - **Region**: DFW (Dallas)
-- **Size**: shared-cpu-1x, 256MB RAM
-- **Auto-stop**: Enabled (stops when idle, starts on connection)
-- **Min machines**: 0 (completely off until you start it)
+- **Size**: shared-cpu-2x, 2GB RAM (needed for Docker workloads)
 - **Storage**: None - ephemeral only (fresh start each deployment)
 
 ## Setup
 
-### 1. Deploy to Fly.io
+### 1. Build and Push Pre-built Image
+
+First, build the image locally with all Docker images pre-pulled:
 
 ```bash
 cd fly_minimal
 
-# Login to Fly.io (if not already)
-fly auth login
+# Build image with pre-pulled Docker images and push to Fly registry
+./build-and-push.sh
 
 # Create the app (first time only)
 fly apps create wander-test-minimal
