@@ -1,6 +1,6 @@
 # Current Progress - Wander Zero-to-Running Developer Environment
 
-**Last Updated:** November 11, 2025, 2:45 PM
+**Last Updated:** November 11, 2025, 3:10 PM
 **Project Status:** ✅ **PRODUCTION READY** - All PRD requirements met + Cloud Deployment
 **Completion:** 100% of P0/P1 requirements | 70% of P2 requirements
 
@@ -98,23 +98,32 @@ The Wander Zero-to-Running Developer Environment is **fully functional, producti
 - SaaS platform use cases
 - Image registry management
 
+### 8. Teardown Script Enhancement ✅
+**Updated:** `teardown.sh:251` (Latest mini-update)
+- Added setup.sh reminder to nuclear teardown restart instructions
+- Shows "colima start (or run ./setup.sh)" for better new developer experience
+- Maintains consistency with main README recommendations
+- Completed just now (2 minutes)
+
 ---
 
 ## 📁 Key Files Changed (This Session)
 
-### Modified (5 files)
+### Modified (6 files)
 1. `README.md` - Added setup paths comparison and clear recommendations
 2. `fly_minimal/Dockerfile` - Smart Docker startup, jq dependency
 3. `fly_minimal/fly.toml` - Simplified for remote builder
 4. `fly_minimal/README.md` - Complete cloud-focused rewrite
-5. `log_docs/current_progress.md` - This file
+5. `teardown.sh` - Added setup.sh reminder to restart instructions
+6. `log_docs/current_progress.md` - This file
 
-### Created (4 files)
+### Created (5 files)
 1. `fly_minimal/deploy.sh` - Automated deployment script
 2. `fly_minimal/start-docker.sh` - Smart storage driver detection
 3. `fly_minimal/TROUBLESHOOTING.md` - Comprehensive troubleshooting
 4. `fly_minimal/REUSE_IMAGE.md` - Image reuse patterns
-5. `log_docs/PROJECT_LOG_2025-11-11_fly-deployment-smart-docker.md` - Session log
+5. `log_docs/PROJECT_LOG_2025-11-11_fly-deployment-smart-docker.md` - Main session log
+6. `log_docs/PROJECT_LOG_2025-11-11_teardown-setup-reminder.md` - Mini-update log
 
 ### Deleted (1 file)
 1. `fly_minimal/bootstrap.sh` - Superseded by new deployment model
@@ -319,8 +328,9 @@ Local Development:                  Fly.io Cloud Deployment:
 - Deleted: 5 files
 
 **Commits:**
-- Total: 11+ commits
-- Most recent: "feat: add Fly.io deployment with smart Docker storage driver detection"
+- Total: 13 commits
+- Most recent: "docs: add setup.sh reminder to teardown script restart instructions"
+- Previous: "feat: add Fly.io deployment with smart Docker storage driver detection"
 
 **Sessions:**
 - Nov 10 (Morning): Initial implementation + P1 features
