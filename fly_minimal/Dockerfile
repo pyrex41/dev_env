@@ -1,12 +1,12 @@
-# Lean Alpine Linux image for testing setup scripts
-# Based on Alpine 3.19 (~5MB base image)
+# Lean Debian slim image for testing setup scripts
+# Based on Debian Bookworm slim (~80MB base image)
 # NO PERSISTENT STORAGE - Fresh start every deployment
 
-FROM alpine:3.19
+FROM debian:bookworm-slim
 
 # Install OpenSSH, Fish shell, and basic utilities
-RUN apk add --no-cache \
-    openssh \
+RUN apt-get update && apt-get install -y \
+    openssh-server \
     bash \
     fish \
     curl \
@@ -14,7 +14,7 @@ RUN apk add --no-cache \
     git \
     sudo \
     ca-certificates \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH with Fly.io certificate authority
 RUN mkdir -p /var/run/sshd \
@@ -28,7 +28,7 @@ RUN mkdir -p /var/run/sshd \
 RUN echo 'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBBwdCfg6yLlGxJOJwc+bNCBoWNuPX8Y+HkdkYdKQaH0NjlLqpV2LhbOxQYPZs47KPFtoDHkf8w3oV1j5A0dS3vM= root@fly.io' > /etc/ssh/ca.pub
 
 # Create test user with sudo access (default to Fish shell)
-RUN adduser -D -s /usr/bin/fish testuser \
+RUN adduser --disabled-password --gecos "" --shell /usr/bin/fish testuser \
     && echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser \
     && chmod 0440 /etc/sudoers.d/testuser
 
