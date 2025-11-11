@@ -156,7 +156,7 @@ async function initializeConnections() {
 }
 
 // Health check endpoint
-app.get('/health', async (_req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response): Promise<void> => {
   const health: {
     status: 'healthy' | 'degraded' | 'unhealthy';
     timestamp: string;
@@ -180,7 +180,8 @@ app.get('/health', async (_req: Request, res: Response) => {
   } catch (error) {
     health.status = 'unhealthy';
     health.services.database = 'disconnected';
-    return res.status(503).json(health);
+    res.status(503).json(health);
+    return;
   }
 
   try {
