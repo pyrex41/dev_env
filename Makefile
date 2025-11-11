@@ -10,6 +10,9 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
+# Detect Docker Compose command (v1 vs v2)
+COMPOSE_CMD := $(shell command -v docker-compose >/dev/null 2>&1 && echo "docker-compose" || echo "docker compose")
+
 ##@ General
 
 help: ## Display this help message
@@ -46,7 +49,7 @@ dev: prereqs validate-secrets ## Start all services (frontend, API, DB, Redis)
 		echo "$(CYAN)💡 Quick start:$(NC) cp .env.local.example .env && make dev"; \
 		exit 1; \
 	fi
-	@docker-compose up -d
+	@$(COMPOSE_CMD) up -d
 	@echo ""
 	@echo "$(GREEN)✓ Services starting...$(NC)"
 	@echo "$(CYAN)Waiting for health checks to pass...$(NC)"
@@ -55,7 +58,7 @@ dev: prereqs validate-secrets ## Start all services (frontend, API, DB, Redis)
 
 down: ## Stop all services (keeps data volumes)
 	@echo "$(CYAN)Stopping all services...$(NC)"
-	@docker-compose down
+	@$(COMPOSE_CMD) down
 	@echo "$(GREEN)✓ Services stopped$(NC)"
 
 restart: down dev ## Quick restart (down + dev)
@@ -65,26 +68,26 @@ reset: ## Nuclear option - stop, remove volumes, and restart fresh
 	@echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
 	@sleep 5
 	@echo "$(CYAN)Resetting environment...$(NC)"
-	@docker-compose down -v
+	@$(COMPOSE_CMD) down -v
 	@echo "$(GREEN)✓ Volumes removed$(NC)"
 	@$(MAKE) dev
 
 ##@ Logs & Monitoring
 
 logs: ## Tail logs from all services
-	@docker-compose logs -f
+	@$(COMPOSE_CMD) logs -f
 
 logs-api: ## Tail logs from API service only
-	@docker-compose logs -f api
+	@$(COMPOSE_CMD) logs -f api
 
 logs-frontend: ## Tail logs from frontend service only
-	@docker-compose logs -f frontend
+	@$(COMPOSE_CMD) logs -f frontend
 
 logs-db: ## Tail logs from PostgreSQL
-	@docker-compose logs -f postgres
+	@$(COMPOSE_CMD) logs -f postgres
 
 logs-redis: ## Tail logs from Redis
-	@docker-compose logs -f redis
+	@$(COMPOSE_CMD) logs -f redis
 
 health: ## Check health status of all services
 	@echo "$(CYAN)Checking service health...$(NC)"
@@ -118,22 +121,22 @@ health: ## Check health status of all services
 
 migrate: ## Run database migrations
 	@echo "$(CYAN)Running migrations...$(NC)"
-	@docker-compose exec api pnpm run migrate
+	@$(COMPOSE_CMD) exec api pnpm run migrate
 	@echo "$(GREEN)✓ Migrations complete$(NC)"
 
 migrate-rollback: ## Rollback last migration
 	@echo "$(CYAN)Rolling back last migration...$(NC)"
-	@docker-compose exec api pnpm run migrate:down
+	@$(COMPOSE_CMD) exec api pnpm run migrate:down
 	@echo "$(GREEN)✓ Rollback complete$(NC)"
 
 seed: ## Load seed data into database
 	@echo "$(CYAN)Loading seed data...$(NC)"
-	@docker-compose exec api pnpm run seed
+	@$(COMPOSE_CMD) exec api pnpm run seed
 	@echo "$(GREEN)✓ Seed data loaded$(NC)"
 
 shell-db: ## Open PostgreSQL shell
 	@echo "$(CYAN)Opening PostgreSQL shell...$(NC)"
-	@docker-compose exec postgres psql -U wander_user -d wander
+	@$(COMPOSE_CMD) exec postgres psql -U wander_user -d wander
 
 ##@ Development Workflow
 
@@ -141,27 +144,27 @@ test: test-api test-frontend ## Run all tests
 
 test-api: ## Run API tests
 	@echo "$(CYAN)Running API tests...$(NC)"
-	@docker-compose exec api pnpm run test
+	@$(COMPOSE_CMD) exec api pnpm run test
 
 test-frontend: ## Run frontend tests
 	@echo "$(CYAN)Running frontend tests...$(NC)"
-	@docker-compose exec frontend pnpm run test
+	@$(COMPOSE_CMD) exec frontend pnpm run test
 
 shell-api: ## Open shell in API container
 	@echo "$(CYAN)Opening API container shell...$(NC)"
-	@docker-compose exec api sh
+	@$(COMPOSE_CMD) exec api sh
 
 lint: ## Run linters on all code
 	@echo "$(CYAN)Running linters...$(NC)"
-	@docker-compose exec api pnpm run lint
-	@docker-compose exec frontend pnpm run lint
+	@$(COMPOSE_CMD) exec api pnpm run lint
+	@$(COMPOSE_CMD) exec frontend pnpm run lint
 	@echo "$(GREEN)✓ Linting complete$(NC)"
 
 ##@ Cleanup
 
 clean: down ## Stop services and remove volumes (fresh start)
 	@echo "$(CYAN)Cleaning up...$(NC)"
-	@docker-compose down -v
+	@$(COMPOSE_CMD) down -v
 	@echo "$(GREEN)✓ Volumes removed$(NC)"
 
 nuke: ## Remove everything (images, volumes, containers)
@@ -169,7 +172,7 @@ nuke: ## Remove everything (images, volumes, containers)
 	@echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
 	@sleep 5
 	@echo "$(CYAN)Nuking environment...$(NC)"
-	@docker-compose down -v --rmi all
+	@$(COMPOSE_CMD) down -v --rmi all
 	@echo "$(GREEN)✓ Everything removed$(NC)"
 
 ##@ Kubernetes Deployment
