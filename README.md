@@ -97,6 +97,17 @@ make doctor  # Diagnose any environment issues
 
 **Total Time:** 5-10 minutes
 
+### Platform Compatibility
+
+**Tested and supported:**
+- macOS 12+ (Intel & Apple Silicon)
+- Linux (Ubuntu 20.04+, Debian 11+)
+- Docker Desktop 4.0+ or Colima 0.5+
+
+**Requirements:**
+- `lsof` command for port diagnostics (included in macOS, install via `apt-get install lsof` on Linux)
+- `pnpm` for dependency management (install via `npm install -g pnpm`)
+
 ### Why This Approach?
 
 - **Fast**: Services start in ~10 seconds, hot reload works instantly

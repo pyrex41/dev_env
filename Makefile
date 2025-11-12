@@ -40,14 +40,19 @@ doctor: ## Diagnose environment and common issues
 	@command -v pnpm >/dev/null 2>&1 && echo "$(GREEN)✓ pnpm installed$(NC)" || echo "$(YELLOW)⚠ pnpm not found$(NC) - Install: npm install -g pnpm"
 	@echo ""
 	@echo "$(YELLOW)Port Availability:$(NC)"
-	@for port in 3000 5432 6379 8000 9229; do \
-		if lsof -Pi :$$port -sTCP:LISTEN -t >/dev/null 2>&1 ; then \
-			PROC=$$(lsof -t -i:$$port | head -1); \
-			echo "$(RED)✗ Port $$port IN USE by PID $$PROC$(NC) - Run: kill $$PROC"; \
-		else \
-			echo "$(GREEN)✓ Port $$port available$(NC)"; \
-		fi; \
-	done
+	@if ! command -v lsof >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ lsof not found - skipping port checks$(NC)"; \
+		echo "  Install: apt-get install lsof (Linux) or included in macOS"; \
+	else \
+		for port in 3000 5432 6379 8000 9229; do \
+			if lsof -Pi :$$port -sTCP:LISTEN -t >/dev/null 2>&1 ; then \
+				PROC=$$(lsof -t -i:$$port | head -1); \
+				echo "$(RED)✗ Port $$port IN USE by PID $$PROC$(NC) - Run: kill $$PROC"; \
+			else \
+				echo "$(GREEN)✓ Port $$port available$(NC)"; \
+			fi; \
+		done; \
+	fi
 	@echo ""
 	@echo "$(YELLOW)Configuration:$(NC)"
 	@[ -f .env ] && echo "$(GREEN)✓ .env file exists$(NC)" || echo "$(RED)✗ .env missing$(NC) - Run: cp .env.local.example .env"
@@ -222,41 +227,47 @@ setup-vscode: ## Setup VS Code workspace (extensions, debugger, settings)
 	@echo "$(CYAN)Setting up VS Code workspace...$(NC)"
 	@mkdir -p .vscode
 	@echo "$(YELLOW)Creating VS Code configuration files...$(NC)"
-	@echo '{' > .vscode/extensions.json
-	@echo '  "recommendations": [' >> .vscode/extensions.json
-	@echo '    "dbaeumer.vscode-eslint",' >> .vscode/extensions.json
-	@echo '    "esbenp.prettier-vscode",' >> .vscode/extensions.json
-	@echo '    "ms-azuretools.vscode-docker",' >> .vscode/extensions.json
-	@echo '    "ms-vscode.vscode-typescript-next"' >> .vscode/extensions.json
-	@echo '  ]' >> .vscode/extensions.json
-	@echo '}' >> .vscode/extensions.json
-	@echo '{' > .vscode/launch.json
-	@echo '  "version": "0.2.0",' >> .vscode/launch.json
-	@echo '  "configurations": [' >> .vscode/launch.json
-	@echo '    {' >> .vscode/launch.json
-	@echo '      "type": "node",' >> .vscode/launch.json
-	@echo '      "request": "attach",' >> .vscode/launch.json
-	@echo '      "name": "Attach to API (Docker)",' >> .vscode/launch.json
-	@echo '      "port": 9229,' >> .vscode/launch.json
-	@echo '      "restart": true,' >> .vscode/launch.json
-	@echo '      "sourceMaps": true,' >> .vscode/launch.json
-	@echo '      "skipFiles": ["<node_internals>/**"],' >> .vscode/launch.json
-	@echo '      "localRoot": "$${workspaceFolder}/api",' >> .vscode/launch.json
-	@echo '      "remoteRoot": "/app"' >> .vscode/launch.json
-	@echo '    }' >> .vscode/launch.json
-	@echo '  ]' >> .vscode/launch.json
-	@echo '}' >> .vscode/launch.json
-	@echo '{' > .vscode/settings.json
-	@echo '  "editor.formatOnSave": true,' >> .vscode/settings.json
-	@echo '  "editor.defaultFormatter": "esbenp.prettier-vscode",' >> .vscode/settings.json
-	@echo '  "typescript.tsdk": "node_modules/typescript/lib",' >> .vscode/settings.json
-	@echo '  "[typescript]": {' >> .vscode/settings.json
-	@echo '    "editor.defaultFormatter": "esbenp.prettier-vscode"' >> .vscode/settings.json
-	@echo '  },' >> .vscode/settings.json
-	@echo '  "[typescriptreact]": {' >> .vscode/settings.json
-	@echo '    "editor.defaultFormatter": "esbenp.prettier-vscode"' >> .vscode/settings.json
-	@echo '  }' >> .vscode/settings.json
-	@echo '}' >> .vscode/settings.json
+	@cat > .vscode/extensions.json <<'EOF'
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-azuretools.vscode-docker",
+    "ms-vscode.vscode-typescript-next"
+  ]
+}
+EOF
+	@cat > .vscode/launch.json <<'EOF'
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to API (Docker)",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "localRoot": "$${workspaceFolder}/api",
+      "remoteRoot": "/app"
+    }
+  ]
+}
+EOF
+	@cat > .vscode/settings.json <<'EOF'
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
+EOF
 	@echo ""
 	@echo "$(GREEN)✓ VS Code workspace configured!$(NC)"
 	@echo ""
@@ -278,8 +289,11 @@ setup-hooks: ## Install optional pre-commit hooks (runs lint & test before commi
 	fi
 	@command -v pnpm >/dev/null 2>&1 || { echo "$(RED)Error: pnpm not found. Install with: npm install -g pnpm$(NC)"; exit 1; }
 	@echo "$(YELLOW)This will install husky and lint-staged for pre-commit hooks$(NC)"
-	@pnpm install
-	@pnpm prepare
+	@if ! pnpm install || ! pnpm prepare; then \
+		echo "$(RED)✗ Hook setup failed - cleaning up$(NC)"; \
+		rm -rf node_modules .husky; \
+		exit 1; \
+	fi
 	@mkdir -p .husky
 	@echo '#!/usr/bin/env sh' > .husky/pre-commit
 	@echo '. "$$(dirname -- "$$0")/_/husky.sh"' >> .husky/pre-commit
