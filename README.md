@@ -2,7 +2,7 @@
 
 **Clone → Single Command → Running App in 3-5 Minutes**
 
-A complete multi-service development environment that "just works" on any machine.
+A complete multi-service development environment that "just works"
 
 ---
 
