@@ -1,0 +1,14 @@
+{
+  "name": "wander-dev-env",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-to-running developer environment for Wander",
+  "scripts": {
+    "prepare": "husky install",
+    "precommit": "make lint && make test"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0"
+  }
+}
