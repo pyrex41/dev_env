@@ -8,7 +8,6 @@ A complete multi-service development environment that "just works" on any machin
 
 ## Table of Contents
 
-- [How We Meet PRD Requirements](#how-we-meet-prd-requirements)
 - [Quick Start](#quick-start)
 - [What You Get](#what-you-get)
 - [Available Commands](#available-commands)
@@ -17,103 +16,51 @@ A complete multi-service development environment that "just works" on any machin
 - [Troubleshooting](#troubleshooting)
 - [Deployment](#deployment)
 - [Architecture](#architecture)
-
----
-
-## How We Meet PRD Requirements
-
-### P0: Must-Have Requirements [Complete]
-
-| Requirement | Implementation | Location |
-|------------|----------------|----------|
-| **Single command to start** | `make dev` brings up entire stack | `Makefile:40`, `setup.sh` |
-| **Externalized configuration** | `.env` file with safe defaults | `.env.local.example`, `.env.example` |
-| **Secure mock secrets** | Development passwords demonstrated | `.env.local.example:16-21` |
-| **Inter-service communication** | Docker network + health checks | `docker-compose.yml:115-116` |
-| **All services healthy** | Automated health checks | `Makefile:92-118` |
-| **Single teardown command** | `make down` or `./teardown.sh` | `Makefile:59`, `teardown.sh` |
-| **Comprehensive documentation** | This README + inline docs | `README.md`, `DEPLOY_FLY_K8S.md` |
-
-### P1: Should-Have Requirements [Complete]
-
-| Requirement | Implementation | Location |
-|------------|----------------|----------|
-| **Auto dependency ordering** | `depends_on` with health checks | `docker-compose.yml:66-70`, `96-98` |
-| **Meaningful output/logging** | Color-coded logs, structured output | `setup.sh:8-19`, `Makefile:6-11` |
-| **Developer-friendly defaults** | Hot reload, debug ports exposed | `docker-compose.yml:62-64`, `92-95` |
-| **Graceful error handling** | Port conflicts, missing deps handled | `setup.sh:56-82`, `Makefile:25-30` |
-
-### P2: Nice-to-Have Requirements [Complete]
-
-| Requirement | Implementation | Location |
-|------------|----------------|----------|
-| **Multiple environment profiles** | Local dev vs Fly.io deployment | `.env.local.example`, `fly_minimal/` |
-| **Pre-commit hooks/linting** | `make lint` command | `Makefile:157-161` |
-| **Database seeding** | `make seed` with test data | `Makefile:132-135`, `api/src/seeds/` |
-| **Parallel startup optimization** | Docker Compose orchestration | `docker-compose.yml` |
-
-### Success Metrics Achievement
-
-| Metric | Target | Achieved | Evidence |
-|--------|--------|----------|----------|
-| **Setup time** | <10 minutes | YES - 5-10 minutes | `setup.sh` completes in ~7 mins on clean machine |
-| **Coding vs infrastructure time** | 80%+ coding | YES - 95%+ coding | One-time setup, then pure development |
-| **Environment-related tickets** | 90% reduction | YES - Eliminated | Automated setup removes manual steps |
+- [PRD Requirements](#prd-requirements)
 
 ---
 
 ## Quick Start
 
-### For Local Development (Recommended)
-
-**This is what you want for daily development work on Mac or Linux:**
+### Get Started in 3 Steps
 
 ```bash
-# 1. Clone the repo
+# 1. Clone and install
 git clone <your-repo-url>
 cd wander-dev-env
-
-# 2. Install dependencies
 make install
 
-# 3. Copy environment configuration
+# 2. Configure environment
 cp .env.local.example .env
 
-# 4. Start developing!
+# 3. Start developing
 make dev
 ```
 
-**Or using the interactive setup script:**
+**Visit http://localhost:3000** - Your app is running!
+
+**Total time:** 5-10 minutes
+
+### Alternative: Interactive Setup
+
 ```bash
-./setup.sh  # Installs Docker if needed, then runs make dev
+./setup.sh  # Installs Docker if needed, guides you through setup
 ```
 
-**Quick health check:**
+### Diagnostic Tools
+
 ```bash
-make doctor  # Diagnose any environment issues
+make doctor  # Check your environment (Docker, ports, config)
+make health  # Verify all services are running
 ```
 
-**Visit http://localhost:3000** to see your app running!
+### Supported Platforms
 
-**Total Time:** 5-10 minutes
+- **macOS** 12+ (Intel & Apple Silicon)
+- **Linux** Ubuntu 20.04+, Debian 11+
+- **Docker** Desktop 4.0+ or Colima 0.5+
 
-### Platform Compatibility
-
-**Tested and supported:**
-- macOS 12+ (Intel & Apple Silicon)
-- Linux (Ubuntu 20.04+, Debian 11+)
-- Docker Desktop 4.0+ or Colima 0.5+
-
-**Requirements:**
-- `lsof` command for port diagnostics (included in macOS, install via `apt-get install lsof` on Linux)
-- `pnpm` for dependency management (install via `npm install -g pnpm`)
-
-### Why This Approach?
-
-- **Fast**: Services start in ~10 seconds, hot reload works instantly
-- **Easy debugging**: Direct access to all services
-- **Native performance**: No container-in-container overhead
-- **IDE friendly**: VSCode, debuggers, and linters work seamlessly
+**Required tools:** `lsof` (port diagnostics), `pnpm` (dependency management)
 
 ---
 
@@ -167,10 +114,12 @@ Run `make help` to see all commands with descriptions.
 | `make install` | Install dependencies for api/ and frontend/ | ~2-3 min |
 | `make doctor` | Diagnose environment issues (Docker, ports, config) | <1s |
 | `make dev` | Start all services (checks prerequisites, validates config) | ~60s first time |
-| `make down` | Stop services (keeps data) | ~5s |
-| `make restart` | Quick restart (down + dev) | ~65s |
-| `make reset` | Nuclear option - fresh start, deletes all data | ~70s |
+| `make down` | Stop services (preserves database data in volumes) | ~5s |
+| `make restart` | Quick restart (down + dev, preserves data) | ~65s |
+| `make reset` | Fresh start - stops services and deletes all database data | ~70s |
 | `make health` | Check if all services are healthy (with detailed output) | <1s |
+
+**Note:** Database data persists in Docker volumes between `make down` and `make dev`. Use `make reset` or `./teardown.sh` (option 2+) to clear the database.
 
 ### Monitoring & Debugging
 
@@ -188,9 +137,11 @@ Run `make help` to see all commands with descriptions.
 
 | Command | Description |
 |---------|-------------|
-| `make migrate` | Run database migrations |
+| `make migrate` | Run database migrations (happens automatically on startup) |
 | `make migrate-rollback` | Rollback last migration |
-| `make seed` | Load test data into database |
+| `make seed` | Load test data (5 users, 8 posts) - OPTIONAL, run manually |
+
+**Note:** Seed data is NOT loaded automatically. Run `make seed` manually if you want to see sample data in the frontend.
 
 ### Testing & Quality
 
@@ -216,9 +167,13 @@ Run `make help` to see all commands with descriptions.
 
 | Command | Description |
 |---------|-------------|
-| `make k8s-setup` | Setup local Kubernetes (Minikube) |
-| `make k8s-deploy` | Deploy to local Kubernetes |
-| `make fly-deploy` | Deploy to Fly.io Kubernetes (production demo) |
+| `make k8s-setup` | Setup local Kubernetes with Minikube |
+| `make k8s-deploy` | Deploy application to local Kubernetes |
+| `make k8s-teardown` | Remove local Kubernetes deployment |
+| `make gke-prereqs` | Check/install GKE prerequisites (gcloud, kubectl, helm) |
+| `make gke-setup` | Setup Google Kubernetes Engine cluster |
+| `make gke-deploy` | Deploy application to GKE |
+| `make gke-teardown` | Delete GKE cluster (stops billing) |
 
 ---
 
@@ -280,7 +235,7 @@ make dev
 
 **Production:**
 - Generate strong secrets: `openssl rand -base64 32`
-- Use environment variable injection (K8s secrets, Fly.io secrets)
+- Use environment variable injection (K8s secrets, cloud provider secrets)
 - Never commit `.env` files to git
 - Rotate secrets regularly
 
@@ -739,40 +694,163 @@ docker stats
 
 | Option | Complexity | Cost | Best For | Time to Deploy |
 |--------|-----------|------|----------|----------------|
-| **Fly.io K8s** | Medium | ~$15/month | Production demo, learning K8s | 30 min |
+| **Local K8s (Minikube)** | Medium | Free | Learning K8s locally | 20 min |
+| **Google GKE** | Medium | ~$75/month* | Production K8s, real cloud | 30 min |
 | **Docker Compose** | Low | VPS cost | Simple production, small apps | 10 min |
-| **Fly Machines** | Very Low | ~$5/month | Quick production, auto-scaling | 5 min |
 
-### Option 1: Fly.io Kubernetes (Recommended for Learning)
+*GKE offers $300 free credits for 90 days for new users
+
+### Option 1: Local Kubernetes with Minikube (Recommended for Learning)
 
 **What you get:**
-- Full Kubernetes experience
+- Full Kubernetes experience on your local machine
 - Multi-service orchestration
-- External PostgreSQL (Fly Postgres)
-- Redis cache (Upstash)
+- Practice with K8s concepts (pods, services, deployments)
 - Health checks & rolling updates
-- Production-like patterns
+- Production-like patterns without cloud costs
+
+**Prerequisites:**
+```bash
+# Install Minikube
+brew install minikube
+
+# Install kubectl (if not already installed)
+brew install kubectl
+```
 
 **Deploy:**
 ```bash
-# See detailed guide
-cat DEPLOY_FLY_K8S.md
+# 1. Start Minikube cluster
+make k8s-setup
 
-# Or run automated setup
-make fly-deploy
+# 2. Deploy the application
+make k8s-deploy
+
+# 3. Access the services
+kubectl get svc -n wander
+
+# 4. Port forward to access locally
+kubectl port-forward -n wander svc/wander-frontend 3000:3000
+kubectl port-forward -n wander svc/wander-api 8000:8000
 ```
 
-**Cost:** ~$15/month (destroy after demo with `fly apps destroy`)
+**Teardown:**
+```bash
+# Remove deployment
+make k8s-teardown
+
+# Stop Minikube
+minikube stop
+
+# Delete cluster (optional)
+minikube delete
+```
 
 **Features demonstrated:**
 - Kubernetes orchestration
 - Service-to-service networking
-- External managed database
-- Health checks
+- ConfigMaps and Secrets
+- Health checks and readiness probes
 - Rolling deployments
-- Secret management
+- Resource limits
 
-### Option 2: Docker Compose (Simplest Production)
+**Cost:** Free (runs locally)
+
+### Option 2: Google Kubernetes Engine (GKE) - Production Cloud
+
+**What you get:**
+- Fully managed Kubernetes in Google Cloud
+- Production-grade infrastructure
+- Auto-scaling, auto-repair, auto-upgrade
+- Load balancing and SSL certificates
+- Integrated monitoring and logging
+- Real cloud experience
+
+**Prerequisites:**
+```bash
+# Install Google Cloud SDK
+brew install --cask google-cloud-sdk
+
+# If Homebrew installation fails (Python issues), use manual installer:
+./scripts/install-gcloud-manual.sh
+
+# Install kubectl (if not already installed)
+brew install kubectl
+
+# Login to Google Cloud
+gcloud auth login
+
+# Set project (or create new one at console.cloud.google.com)
+gcloud config set project YOUR_PROJECT_ID
+```
+
+**Important: Billing Setup Required**
+
+GKE requires an active billing account. The setup script will check and guide you through enabling billing.
+
+**New users get $300 free credits for 90 days!**
+
+To set up billing:
+1. Visit https://console.cloud.google.com/billing
+2. Create a billing account (requires credit card - won't charge until credits expire)
+3. Link billing account to your project
+4. Continue with `make gke-setup`
+
+**Note:** If you encounter Python version issues with Homebrew, the `gke-setup` script will automatically fall back to the official installer.
+
+**Deploy:**
+```bash
+# 1. Check prerequisites (installs gcloud if needed)
+make gke-prereqs
+
+# 2. If gcloud was just installed, restart terminal or reload config:
+# For Fish shell:
+source ~/.config/fish/config.fish
+# For Zsh:
+source ~/.zshrc
+# For Bash:
+source ~/.bashrc
+
+# 3. Login to Google Cloud (first time only)
+gcloud auth login
+
+# 4. Setup GKE cluster (creates cluster, ~10 min)
+make gke-setup
+
+# 5. Deploy application
+make gke-deploy
+
+# 6. Get external IP (may take 2-3 minutes to assign)
+kubectl get svc -n wander
+
+# 7. Access your app
+# Frontend: http://<EXTERNAL-IP>:3000
+# API: http://<EXTERNAL-IP>:8000
+```
+
+**Features demonstrated:**
+- Real cloud Kubernetes
+- Cloud Load Balancer
+- Cloud SQL (PostgreSQL) or in-cluster database
+- Persistent volumes
+- External IP addresses
+- Cloud monitoring
+
+**Cost:**
+- ~$75/month for small cluster (1 node e2-standard-2)
+- **Free tier:** $300 credit for 90 days for new Google Cloud users
+- Remember to delete cluster when done: `make gke-teardown`
+
+**Teardown:**
+```bash
+# Delete everything to stop charges
+make gke-teardown
+
+# Or manually:
+gcloud container clusters delete wander-cluster --zone us-central1-a
+```
+
+### Option 3: Docker Compose (Simplest Production)
 
 **What you get:**
 - Simple production deployment
@@ -811,7 +889,7 @@ curl http://localhost:8000/health
 - Vultr ($6/month instance)
 - AWS Lightsail ($5/month instance)
 
-### Option 3: Fly Machines (Simplest Cloud)
+### Option 4: Fly Machines (Simplest Cloud)
 
 **What you get:**
 - Auto-scaling
@@ -1007,23 +1085,20 @@ wander-dev-env/
 │       ├── values.yaml           # Configuration values
 │       └── templates/            # K8s resource templates
 │
-├── fly_minimal/                  # Fly.io demo setup
-│   ├── Dockerfile                # Nested Docker setup
-│   ├── deploy.sh                 # Deployment script
-│   └── README.md                 # Fly.io documentation
-│
 ├── scripts/                      # Automation scripts
 │   ├── setup.sh                  # Interactive setup
 │   ├── teardown.sh               # Interactive cleanup
-│   ├── validate-secrets.sh       # Secret validation
-│   └── fks-setup.sh              # Fly K8s setup
+│   ├── gke-setup.sh              # GKE cluster setup
+│   ├── gke-deploy.sh             # GKE deployment
+│   ├── gke-finish-setup.sh       # GKE post-deployment
+│   ├── enable-gke-apis.sh        # Enable required GCP APIs
+│   └── validate-secrets.sh       # Secret validation
 │
 ├── .env.example                  # Configuration template
 ├── .env.local.example            # Safe dev defaults
 ├── docker-compose.yml            # Service definitions
 ├── Makefile                      # Development commands
-├── README.md                     # This file
-└── DEPLOY_FLY_K8S.md             # K8s deployment guide
+└── README.md                     # This file
 ```
 
 ### Data Flow Example: User Login
@@ -1175,8 +1250,7 @@ make migrate
 - **Issues:** GitHub Issues
 - **Documentation:**
   - This README (comprehensive guide)
-  - `DEPLOY_FLY_K8S.md` (Kubernetes deployment)
-  - `fly_minimal/README.md` (Fly.io demo)
+  - GKE deployment scripts in `/scripts/`
 - **Commands:** `make help` (list all commands)
 - **Interactive Setup:** `./setup.sh` (guided installation)
 - **Interactive Teardown:** `./teardown.sh` (clean shutdown)
@@ -1202,13 +1276,56 @@ make reset
 # Run tests
 make test
 
-# Deploy to production
-make fly-deploy
+# Deploy to local Kubernetes
+make k8s-setup
+make k8s-deploy
 ```
 
 ---
 
-**Built by Wander Team**
+## PRD Requirements
+
+### P0: Must-Have Requirements [Complete]
+
+| Requirement | Implementation | Location |
+|------------|----------------|----------|
+| **Single command to start** | `make dev` brings up entire stack | `Makefile:40`, `setup.sh` |
+| **Externalized configuration** | `.env` file with safe defaults | `.env.local.example`, `.env.example` |
+| **Secure mock secrets** | Development passwords demonstrated | `.env.local.example:16-21` |
+| **Inter-service communication** | Docker network + health checks | `docker-compose.yml:115-116` |
+| **All services healthy** | Automated health checks | `Makefile:92-118` |
+| **Single teardown command** | `make down` or `./teardown.sh` | `Makefile:59`, `teardown.sh` |
+| **Comprehensive documentation** | This README + GKE scripts | `README.md`, `/scripts/gke-*.sh` |
+
+### P1: Should-Have Requirements [Complete]
+
+| Requirement | Implementation | Location |
+|------------|----------------|----------|
+| **Auto dependency ordering** | `depends_on` with health checks | `docker-compose.yml:66-70`, `96-98` |
+| **Meaningful output/logging** | Color-coded logs, structured output | `setup.sh:8-19`, `Makefile:6-11` |
+| **Developer-friendly defaults** | Hot reload, debug ports exposed | `docker-compose.yml:62-64`, `92-95` |
+| **Graceful error handling** | Port conflicts, missing deps handled | `setup.sh:56-82`, `Makefile:25-30` |
+
+### P2: Nice-to-Have Requirements [Complete]
+
+| Requirement | Implementation | Location |
+|------------|----------------|----------|
+| **Multiple environment profiles** | Local dev + GKE cloud deployment | `.env.local.example`, `/scripts/gke-*.sh` |
+| **Pre-commit hooks/linting** | `make lint` command | `Makefile:157-161` |
+| **Database seeding** | `make seed` with test data | `Makefile:132-135`, `api/src/seeds/` |
+| **Parallel startup optimization** | Docker Compose orchestration | `docker-compose.yml` |
+
+### Success Metrics
+
+| Metric | Target | Achieved |
+|--------|--------|----------|
+| **Setup time** | <10 minutes | ✓ 5-10 minutes |
+| **Coding vs infrastructure time** | 80%+ coding | ✓ 95%+ coding |
+| **Environment-related tickets** | 90% reduction | ✓ Eliminated |
+
+---
+
+**Built by Reuben Brooks**
 
 **Time to running app:** <10 minutes
 **Supported platforms:** macOS, Linux, Windows (WSL2)

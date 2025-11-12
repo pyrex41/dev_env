@@ -17,26 +17,60 @@ echo ""
 # Check prerequisites
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 
+# Check Homebrew
+if ! command -v brew &> /dev/null; then
+    echo -e "${RED}✗ Homebrew not installed${NC}"
+    echo "Install from: https://brew.sh"
+    exit 1
+fi
+
+# Check and install flyctl
 if ! command -v flyctl &> /dev/null; then
-    echo -e "${RED}✗ flyctl not installed${NC}"
-    echo "Install: brew install flyctl"
-    exit 1
+    echo -e "${YELLOW}✗ flyctl not installed${NC}"
+    read -p "Install flyctl now? (y/N): " INSTALL_FLYCTL
+    if [[ "$INSTALL_FLYCTL" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Installing flyctl...${NC}"
+        brew install flyctl
+        echo -e "${GREEN}✓ flyctl installed${NC}"
+    else
+        echo -e "${RED}flyctl is required. Exiting.${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ flyctl installed${NC}"
 fi
-echo -e "${GREEN}✓ flyctl installed${NC}"
 
+# Check and install kubectl
 if ! command -v kubectl &> /dev/null; then
-    echo -e "${RED}✗ kubectl not installed${NC}"
-    echo "Install: brew install kubectl"
-    exit 1
+    echo -e "${YELLOW}✗ kubectl not installed${NC}"
+    read -p "Install kubectl now? (y/N): " INSTALL_KUBECTL
+    if [[ "$INSTALL_KUBECTL" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Installing kubectl...${NC}"
+        brew install kubectl
+        echo -e "${GREEN}✓ kubectl installed${NC}"
+    else
+        echo -e "${RED}kubectl is required. Exiting.${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ kubectl installed${NC}"
 fi
-echo -e "${GREEN}✓ kubectl installed${NC}"
 
+# Check and install helm
 if ! command -v helm &> /dev/null; then
-    echo -e "${RED}✗ helm not installed${NC}"
-    echo "Install: brew install helm"
-    exit 1
+    echo -e "${YELLOW}✗ helm not installed${NC}"
+    read -p "Install helm now? (y/N): " INSTALL_HELM
+    if [[ "$INSTALL_HELM" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Installing helm...${NC}"
+        brew install helm
+        echo -e "${GREEN}✓ helm installed${NC}"
+    else
+        echo -e "${RED}helm is required. Exiting.${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ helm installed${NC}"
 fi
-echo -e "${GREEN}✓ helm installed${NC}"
 
 # Check authentication
 echo ""

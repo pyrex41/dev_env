@@ -24,43 +24,6 @@ const redisClient = createClient({
 
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
 
-// Run database migrations
-async function runMigrations() {
-  try {
-    console.log('🔄 Running database migrations...');
-
-    await runner({
-      databaseUrl: process.env.DATABASE_URL!,
-      migrationsTable: 'pgmigrations',
-      dir: path.join(__dirname, 'migrations'),
-      direction: 'up',
-      count: Infinity,
-      log: (msg: string) => console.log(`   ${msg}`),
-    });
-
-    console.log('✓ Migrations completed successfully');
-  } catch (error) {
-    console.error('\n❌ Database migration failed');
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-    if (error instanceof Error) {
-      console.error('Error:', error.message);
-
-      console.error('\n💡 Troubleshooting:');
-      console.error('  1. Check the migration files in api/src/migrations/');
-      console.error('  2. View detailed logs:');
-      console.error('     make logs-api');
-      console.error('  3. Rollback the last migration:');
-      console.error('     make migrate-rollback');
-      console.error('  4. Reset the database (WARNING: destroys data):');
-      console.error('     make reset');
-    }
-
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    throw error;
-  }
-}
-
 // Retry helper function
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -86,6 +49,52 @@ async function retryWithBackoff<T>(
   }
 
   throw lastError;
+}
+
+// Run database migrations
+async function runMigrations() {
+  try {
+    console.log('🔄 Running database migrations...');
+
+    await retryWithBackoff(
+      async () => {
+        await runner({
+          databaseUrl: process.env.DATABASE_URL!,
+          migrationsTable: 'pgmigrations',
+          dir: path.join(__dirname, 'migrations'),
+          direction: 'up',
+          count: Infinity,
+          log: (msg: string) => console.log(`   ${msg}`),
+        });
+      },
+      {
+        retries: 10,
+        delay: 3000,
+        serviceName: 'Database migrations'
+      }
+    );
+
+    console.log('✓ Migrations completed successfully');
+  } catch (error) {
+    console.error('\n❌ Database migration failed');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    if (error instanceof Error) {
+      console.error('Error:', error.message);
+
+      console.error('\n💡 Troubleshooting:');
+      console.error('  1. Check the migration files in api/src/migrations/');
+      console.error('  2. View detailed logs:');
+      console.error('     make logs-api');
+      console.error('  3. Rollback the last migration:');
+      console.error('     make migrate-rollback');
+      console.error('  4. Reset the database (WARNING: destroys data):');
+      console.error('     make reset');
+    }
+
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    throw error;
+  }
 }
 
 // Initialize connections
@@ -209,6 +218,43 @@ app.get('/api/status', (_req: Request, res: Response) => {
     version: '1.0.0',
     environment: process.env.NODE_ENV,
   });
+});
+
+// Get all users
+app.get('/api/users', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, username, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json({ users: result.rows });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get all posts with user information
+app.get('/api/posts', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.id,
+        p.title,
+        p.content,
+        p.status,
+        p.created_at,
+        u.username,
+        u.email
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.status = 'published'
+      ORDER BY p.created_at DESC
+    `);
+    res.json({ posts: result.rows });
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ error: 'Failed to fetch posts' });
+  }
 });
 
 // Start server

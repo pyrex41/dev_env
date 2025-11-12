@@ -8,14 +8,12 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Dependencies stage
 FROM base AS dependencies
-COPY package.json ./
-COPY pnpm-lock.yaml* ./
+COPY package*.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # Development stage
 FROM base AS development
-COPY package.json ./
-COPY pnpm-lock.yaml* ./
+COPY package*.json pnpm-lock.yaml* ./
 RUN pnpm install
 COPY . .
 EXPOSE 3000

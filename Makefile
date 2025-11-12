@@ -1,7 +1,7 @@
 .PHONY: help install doctor dev down restart reset logs logs-api logs-frontend logs-db logs-redis \
         migrate migrate-rollback seed shell-db shell-api setup-vscode setup-hooks test test-api test-frontend \
         lint validate-secrets health prereqs clean nuke \
-        k8s-setup k8s-deploy k8s-teardown fly-deploy
+        k8s-setup k8s-deploy k8s-teardown gke-prereqs gke-setup gke-deploy gke-teardown
 
 # Color output
 CYAN := \033[0;36m
@@ -366,21 +366,72 @@ k8s-teardown: ## Remove Kubernetes deployment
 	@helm uninstall wander || echo "$(YELLOW)Helm release not found$(NC)"
 	@echo "$(GREEN)✓ Kubernetes deployment removed$(NC)"
 
-fly-deploy: ## Deploy to Fly.io Kubernetes (production demo)
-	@echo "$(CYAN)Deploying to Fly.io Kubernetes...$(NC)"
+##@ Google Kubernetes Engine (GKE)
+
+gke-prereqs: ## Check GKE prerequisites
+	@echo "$(CYAN)Checking GKE prerequisites...$(NC)"
 	@echo ""
-	@echo "$(YELLOW)This will guide you through deploying to Fly.io K8s (FKS)$(NC)"
-	@echo ""
-	@echo "$(CYAN)📖 Full guide:$(NC) DEPLOY_FLY_K8S.md"
-	@echo ""
-	@read -p "Continue with automated setup? (y/N): " CONFIRM; \
-	if [ "$$CONFIRM" = "y" ] || [ "$$CONFIRM" = "Y" ]; then \
-		if [ -f scripts/fks-setup.sh ]; then \
-			./scripts/fks-setup.sh; \
-		else \
-			echo "$(RED)Error: scripts/fks-setup.sh not found$(NC)"; \
-			exit 1; \
-		fi; \
+	@if command -v gcloud >/dev/null 2>&1; then \
+		echo "$(GREEN)✓ gcloud installed$(NC)"; \
+		gcloud version | grep "Google Cloud SDK"; \
 	else \
-		echo "$(CYAN)Aborted. See DEPLOY_FLY_K8S.md for manual steps.$(NC)"; \
+		echo "$(RED)✗ gcloud not installed$(NC)"; \
+		echo ""; \
+		echo "Install options:"; \
+		echo "  1. Manual: ./scripts/install-gcloud-manual.sh"; \
+		echo "  2. Then restart terminal or run: source ~/.zshrc"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo ""
+	@if command -v kubectl >/dev/null 2>&1; then \
+		echo "$(GREEN)✓ kubectl installed$(NC)"; \
+	else \
+		echo "$(YELLOW)✗ kubectl not installed$(NC)"; \
+		echo "  Install: brew install kubectl"; \
+	fi
+	@echo ""
+	@if command -v helm >/dev/null 2>&1; then \
+		echo "$(GREEN)✓ helm installed$(NC)"; \
+	else \
+		echo "$(YELLOW)✗ helm not installed$(NC)"; \
+		echo "  Install: brew install helm"; \
+	fi
+
+gke-setup: ## Setup GKE cluster
+	@echo "$(CYAN)Setting up GKE cluster...$(NC)"
+	@if [ -f scripts/gke-setup.sh ]; then \
+		./scripts/gke-setup.sh; \
+	else \
+		echo "$(RED)Error: scripts/gke-setup.sh not found$(NC)"; \
+		exit 1; \
+	fi
+
+gke-finish: ## Finish GKE setup (if cluster already exists)
+	@echo "$(CYAN)Finishing GKE setup (cluster exists)...$(NC)"
+	@if [ -f scripts/gke-finish-setup.sh ]; then \
+		./scripts/gke-finish-setup.sh; \
+	else \
+		echo "$(RED)Error: scripts/gke-finish-setup.sh not found$(NC)"; \
+		exit 1; \
+	fi
+
+gke-deploy: ## Deploy to GKE (builds images, pushes to GCR, deploys)
+	@echo "$(CYAN)Deploying to GKE...$(NC)"
+	@if [ -f scripts/gke-deploy.sh ]; then \
+		./scripts/gke-deploy.sh; \
+	else \
+		echo "$(RED)Error: scripts/gke-deploy.sh not found$(NC)"; \
+		exit 1; \
+	fi
+
+gke-teardown: ## Delete GKE cluster and all resources
+	@echo "$(YELLOW)⚠ This will delete the entire GKE cluster and all data!$(NC)"
+	@read -p "Continue? (y/N): " CONFIRM; \
+	if [ "$$CONFIRM" = "y" ] || [ "$$CONFIRM" = "Y" ]; then \
+		echo "$(CYAN)Deleting GKE cluster...$(NC)"; \
+		gcloud container clusters delete wander-cluster --zone us-central1-a --quiet; \
+		echo "$(GREEN)✓ GKE cluster deleted$(NC)"; \
+	else \
+		echo "$(CYAN)Aborted$(NC)"; \
 	fi

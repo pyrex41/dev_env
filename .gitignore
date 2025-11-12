@@ -45,3 +45,6 @@ coverage/
 *.backup
 *.tmp
 repomix-output.xml
+
+# Generated GKE config (contains secrets)
+k8s/charts/wander/values-gke.yaml

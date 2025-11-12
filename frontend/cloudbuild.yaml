@@ -1,0 +1,13 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--target=production'
+      - '--tag=$_IMAGE_NAME'
+      - '.'
+    id: 'build-image'
+
+images:
+  - '$_IMAGE_NAME'
+
+timeout: 600s

@@ -193,11 +193,19 @@ echo ""
 
 # Step 1: Stop containers
 echo -e "${ARROW} Stopping containers..."
+
+# Detect Docker Compose command (v1 vs v2)
+if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
+
 if [ "$DO_VOLUMES" = true ]; then
-    make down >/dev/null 2>&1 || docker-compose down --volumes >/dev/null 2>&1
+    $COMPOSE_CMD down --volumes >/dev/null 2>&1 || true
     echo -e "${CHECKMARK} Containers stopped and volumes removed"
 else
-    docker-compose stop >/dev/null 2>&1 || true
+    $COMPOSE_CMD down >/dev/null 2>&1 || true
     echo -e "${CHECKMARK} Containers stopped"
 fi
 
