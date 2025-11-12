@@ -1,5 +1,5 @@
-.PHONY: help dev down restart reset logs logs-api logs-frontend logs-db logs-redis \
-        migrate migrate-rollback seed shell-db shell-api test test-api test-frontend \
+.PHONY: help install doctor dev down restart reset logs logs-api logs-frontend logs-db logs-redis \
+        migrate migrate-rollback seed shell-db shell-api setup-vscode setup-hooks test test-api test-frontend \
         lint validate-secrets health prereqs clean nuke \
         k8s-setup k8s-deploy k8s-teardown fly-deploy
 
@@ -19,6 +19,45 @@ help: ## Display this help message
 	@echo "$(CYAN)Zero-to-Running Developer Environment$(NC)"
 	@echo "$(GREEN)Available commands:$(NC)"
 	@awk 'BEGIN {FS = ":.*##"; printf "\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2 } /^##@/ { printf "\n$(YELLOW)%s$(NC)\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+install: ## Install dependencies for all services
+	@echo "$(CYAN)Installing dependencies...$(NC)"
+	@cd api && pnpm install
+	@cd frontend && pnpm install
+	@echo ""
+	@echo "$(GREEN)✓ Dependencies installed$(NC)"
+	@echo ""
+	@echo "$(CYAN)Next steps:$(NC)"
+	@echo "  1. cp .env.local.example .env"
+	@echo "  2. make dev"
+
+doctor: ## Diagnose environment and common issues
+	@echo "$(CYAN)Running diagnostics...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Prerequisites:$(NC)"
+	@command -v docker >/dev/null 2>&1 && echo "$(GREEN)✓ Docker installed$(NC)" || echo "$(RED)✗ Docker not found$(NC) - Install from: https://docs.docker.com/get-docker/"
+	@docker info >/dev/null 2>&1 && echo "$(GREEN)✓ Docker running$(NC)" || echo "$(RED)✗ Docker not running$(NC) - Run: open -a Docker (macOS) or sudo service docker start (Linux)"
+	@command -v pnpm >/dev/null 2>&1 && echo "$(GREEN)✓ pnpm installed$(NC)" || echo "$(YELLOW)⚠ pnpm not found$(NC) - Install: npm install -g pnpm"
+	@echo ""
+	@echo "$(YELLOW)Port Availability:$(NC)"
+	@for port in 3000 5432 6379 8000 9229; do \
+		if lsof -Pi :$$port -sTCP:LISTEN -t >/dev/null 2>&1 ; then \
+			PROC=$$(lsof -t -i:$$port | head -1); \
+			echo "$(RED)✗ Port $$port IN USE by PID $$PROC$(NC) - Run: kill $$PROC"; \
+		else \
+			echo "$(GREEN)✓ Port $$port available$(NC)"; \
+		fi; \
+	done
+	@echo ""
+	@echo "$(YELLOW)Configuration:$(NC)"
+	@[ -f .env ] && echo "$(GREEN)✓ .env file exists$(NC)" || echo "$(RED)✗ .env missing$(NC) - Run: cp .env.local.example .env"
+	@[ -f .env ] && ! grep -q "CHANGE_ME" .env && echo "$(GREEN)✓ No CHANGE_ME placeholders$(NC)" || echo "$(YELLOW)⚠ Found CHANGE_ME in .env$(NC) - Run: cp .env.local.example .env"
+	@echo ""
+	@echo "$(YELLOW)Disk Space:$(NC)"
+	@df -h / | awk 'NR==2 {print "  Available: " $$4 " (" $$5 " used)"}'
+	@echo ""
+	@echo "$(YELLOW)Docker Resources:$(NC)"
+	@docker info 2>/dev/null | grep -E "(CPUs|Total Memory)" | sed 's/^/  /' || echo "  Unable to check (Docker not running)"
 
 ##@ Local Development (Docker Compose)
 
@@ -97,23 +136,62 @@ health: ## Check health status of all services
 	API_STATUS=$$(docker inspect --format='{{.State.Health.Status}}' wander_api 2>/dev/null || echo "not running"); \
 	FRONTEND_STATUS=$$(docker inspect --format='{{.State.Health.Status}}' wander_frontend 2>/dev/null || echo "not running"); \
 	\
-	if [ "$$POSTGRES_STATUS" = "healthy" ]; then echo "$(GREEN)✓ PostgreSQL:$(NC) healthy"; else echo "$(RED)✗ PostgreSQL:$(NC) $$POSTGRES_STATUS"; fi; \
-	if [ "$$REDIS_STATUS" = "healthy" ]; then echo "$(GREEN)✓ Redis:$(NC)      healthy"; else echo "$(RED)✗ Redis:$(NC)      $$REDIS_STATUS"; fi; \
-	if [ "$$API_STATUS" = "healthy" ]; then echo "$(GREEN)✓ API:$(NC)         healthy"; else echo "$(RED)✗ API:$(NC)         $$API_STATUS"; fi; \
-	if [ "$$FRONTEND_STATUS" = "healthy" ]; then echo "$(GREEN)✓ Frontend:$(NC)    healthy"; else echo "$(RED)✗ Frontend:$(NC)    $$FRONTEND_STATUS"; fi; \
+	if [ "$$POSTGRES_STATUS" = "healthy" ]; then \
+		echo "$(GREEN)✓ PostgreSQL:$(NC) healthy"; \
+	else \
+		echo "$(RED)✗ PostgreSQL:$(NC) $$POSTGRES_STATUS"; \
+		echo "  → Check: make logs-db"; \
+		echo "  → Fix: Verify POSTGRES_PASSWORD in .env"; \
+	fi; \
 	\
-	if [ "$$POSTGRES_STATUS" = "healthy" ] && [ "$$REDIS_STATUS" = "healthy" ] && [ "$$API_STATUS" = "healthy" ] && [ "$$FRONTEND_STATUS" = "healthy" ]; then \
+	if [ "$$REDIS_STATUS" = "healthy" ]; then \
+		echo "$(GREEN)✓ Redis:$(NC)      healthy"; \
+	else \
+		echo "$(RED)✗ Redis:$(NC)      $$REDIS_STATUS"; \
+		echo "  → Check: make logs-redis"; \
+		echo "  → Fix: Verify REDIS_PASSWORD in .env"; \
+	fi; \
+	\
+	if [ "$$API_STATUS" = "healthy" ]; then \
+		echo "$(GREEN)✓ API:$(NC)         healthy"; \
+	else \
+		echo "$(RED)✗ API:$(NC)         $$API_STATUS"; \
+		echo "  → Check: make logs-api"; \
+		echo "  → Fix: Check DATABASE_URL and run 'make migrate'"; \
+	fi; \
+	\
+	if [ "$$FRONTEND_STATUS" = "healthy" ]; then \
+		echo "$(GREEN)✓ Frontend:$(NC)    healthy"; \
+	else \
+		echo "$(RED)✗ Frontend:$(NC)    $$FRONTEND_STATUS"; \
+		echo "  → Check: make logs-frontend"; \
+		echo "  → Fix: Verify VITE_API_URL=http://localhost:8000"; \
+	fi; \
+	\
+	if [ "$$POSTGRES_STATUS" = "healthy" ] && [ "$$REDIS_STATUS" = "healthy" ] && \
+	   [ "$$API_STATUS" = "healthy" ] && [ "$$FRONTEND_STATUS" = "healthy" ]; then \
 		echo ""; \
-		echo "$(GREEN)✓ All services are healthy!$(NC)"; \
-		echo "$(CYAN)Frontend:$(NC) http://localhost:3000"; \
-		echo "$(CYAN)API:$(NC)      http://localhost:8000"; \
-		echo "$(CYAN)API Health:$(NC) http://localhost:8000/health"; \
+		echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+		echo "$(GREEN)✅ All Systems Operational!$(NC)"; \
+		echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+		echo ""; \
+		echo "$(CYAN)🌐 Frontend:$(NC)  http://localhost:3000"; \
+		echo "$(CYAN)🔌 API:$(NC)       http://localhost:8000"; \
+		echo "$(CYAN)💚 Health:$(NC)    http://localhost:8000/health"; \
+		echo ""; \
+		echo "$(CYAN)🗄️  Database:$(NC)  postgres://wander_user@localhost:5432/wander"; \
+		echo "$(CYAN)⚡ Redis:$(NC)     redis://localhost:6379"; \
+		echo ""; \
+		echo "$(YELLOW)Next steps:$(NC)"; \
+		echo "  make seed      # Load sample data"; \
+		echo "  make logs      # View all logs"; \
+		echo "  make test      # Run test suite"; \
 		exit 0; \
 	else \
 		echo ""; \
-		echo "$(YELLOW)⚠ Some services are unhealthy. Check logs with:$(NC)"; \
-		echo "  make logs-api"; \
-		echo "  make logs-frontend"; \
+		echo "$(YELLOW)⚠️  Some services need attention$(NC)"; \
+		echo ""; \
+		echo "Run $(CYAN)make doctor$(NC) for diagnostics"; \
 		exit 1; \
 	fi
 
@@ -139,6 +217,84 @@ shell-db: ## Open PostgreSQL shell
 	@$(COMPOSE_CMD) exec postgres psql -U wander_user -d wander
 
 ##@ Development Workflow
+
+setup-vscode: ## Setup VS Code workspace (extensions, debugger, settings)
+	@echo "$(CYAN)Setting up VS Code workspace...$(NC)"
+	@mkdir -p .vscode
+	@echo "$(YELLOW)Creating VS Code configuration files...$(NC)"
+	@echo '{' > .vscode/extensions.json
+	@echo '  "recommendations": [' >> .vscode/extensions.json
+	@echo '    "dbaeumer.vscode-eslint",' >> .vscode/extensions.json
+	@echo '    "esbenp.prettier-vscode",' >> .vscode/extensions.json
+	@echo '    "ms-azuretools.vscode-docker",' >> .vscode/extensions.json
+	@echo '    "ms-vscode.vscode-typescript-next"' >> .vscode/extensions.json
+	@echo '  ]' >> .vscode/extensions.json
+	@echo '}' >> .vscode/extensions.json
+	@echo '{' > .vscode/launch.json
+	@echo '  "version": "0.2.0",' >> .vscode/launch.json
+	@echo '  "configurations": [' >> .vscode/launch.json
+	@echo '    {' >> .vscode/launch.json
+	@echo '      "type": "node",' >> .vscode/launch.json
+	@echo '      "request": "attach",' >> .vscode/launch.json
+	@echo '      "name": "Attach to API (Docker)",' >> .vscode/launch.json
+	@echo '      "port": 9229,' >> .vscode/launch.json
+	@echo '      "restart": true,' >> .vscode/launch.json
+	@echo '      "sourceMaps": true,' >> .vscode/launch.json
+	@echo '      "skipFiles": ["<node_internals>/**"],' >> .vscode/launch.json
+	@echo '      "localRoot": "$${workspaceFolder}/api",' >> .vscode/launch.json
+	@echo '      "remoteRoot": "/app"' >> .vscode/launch.json
+	@echo '    }' >> .vscode/launch.json
+	@echo '  ]' >> .vscode/launch.json
+	@echo '}' >> .vscode/launch.json
+	@echo '{' > .vscode/settings.json
+	@echo '  "editor.formatOnSave": true,' >> .vscode/settings.json
+	@echo '  "editor.defaultFormatter": "esbenp.prettier-vscode",' >> .vscode/settings.json
+	@echo '  "typescript.tsdk": "node_modules/typescript/lib",' >> .vscode/settings.json
+	@echo '  "[typescript]": {' >> .vscode/settings.json
+	@echo '    "editor.defaultFormatter": "esbenp.prettier-vscode"' >> .vscode/settings.json
+	@echo '  },' >> .vscode/settings.json
+	@echo '  "[typescriptreact]": {' >> .vscode/settings.json
+	@echo '    "editor.defaultFormatter": "esbenp.prettier-vscode"' >> .vscode/settings.json
+	@echo '  }' >> .vscode/settings.json
+	@echo '}' >> .vscode/settings.json
+	@echo ""
+	@echo "$(GREEN)✓ VS Code workspace configured!$(NC)"
+	@echo ""
+	@echo "$(CYAN)What was created:$(NC)"
+	@echo "  .vscode/extensions.json  - Recommended extensions"
+	@echo "  .vscode/launch.json      - API debugger config (port 9229)"
+	@echo "  .vscode/settings.json    - Format on save settings"
+	@echo ""
+	@echo "$(YELLOW)Next steps:$(NC)"
+	@echo "  1. Restart VS Code or reload window"
+	@echo "  2. Install recommended extensions when prompted"
+	@echo "  3. Press F5 to attach debugger to API"
+
+setup-hooks: ## Install optional pre-commit hooks (runs lint & test before commits)
+	@echo "$(CYAN)Setting up pre-commit hooks...$(NC)"
+	@if [ ! -f package.json ]; then \
+		echo "$(RED)Error: package.json not found$(NC)"; \
+		exit 1; \
+	fi
+	@command -v pnpm >/dev/null 2>&1 || { echo "$(RED)Error: pnpm not found. Install with: npm install -g pnpm$(NC)"; exit 1; }
+	@echo "$(YELLOW)This will install husky and lint-staged for pre-commit hooks$(NC)"
+	@pnpm install
+	@pnpm prepare
+	@mkdir -p .husky
+	@echo '#!/usr/bin/env sh' > .husky/pre-commit
+	@echo '. "$$(dirname -- "$$0")/_/husky.sh"' >> .husky/pre-commit
+	@echo '' >> .husky/pre-commit
+	@echo 'make lint && make test' >> .husky/pre-commit
+	@chmod +x .husky/pre-commit
+	@echo ""
+	@echo "$(GREEN)✓ Pre-commit hooks installed!$(NC)"
+	@echo ""
+	@echo "$(CYAN)What this does:$(NC)"
+	@echo "  - Runs 'make lint' before each commit"
+	@echo "  - Runs 'make test' before each commit"
+	@echo "  - Blocks commit if either fails"
+	@echo ""
+	@echo "$(YELLOW)To disable:$(NC) rm -rf .husky"
 
 test: test-api test-frontend ## Run all tests
 

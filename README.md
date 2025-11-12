@@ -73,16 +73,24 @@ A complete multi-service development environment that "just works" on any machin
 git clone <your-repo-url>
 cd wander-dev-env
 
-# 2. Run interactive setup (installs Docker if needed)
-./setup.sh
+# 2. Install dependencies
+make install
 
-# 3. Start developing!
+# 3. Copy environment configuration
+cp .env.local.example .env
+
+# 4. Start developing!
 make dev
 ```
 
-**Or if you already have Docker:**
+**Or using the interactive setup script:**
 ```bash
-cp .env.local.example .env && make dev
+./setup.sh  # Installs Docker if needed, then runs make dev
+```
+
+**Quick health check:**
+```bash
+make doctor  # Diagnose any environment issues
 ```
 
 **Visit http://localhost:3000** to see your app running!
@@ -145,11 +153,13 @@ Run `make help` to see all commands with descriptions.
 
 | Command | Description | Time |
 |---------|-------------|------|
+| `make install` | Install dependencies for api/ and frontend/ | ~2-3 min |
+| `make doctor` | Diagnose environment issues (Docker, ports, config) | <1s |
 | `make dev` | Start all services (checks prerequisites, validates config) | ~60s first time |
 | `make down` | Stop services (keeps data) | ~5s |
 | `make restart` | Quick restart (down + dev) | ~65s |
 | `make reset` | Nuclear option - fresh start, deletes all data | ~70s |
-| `make health` | Check if all services are healthy | <1s |
+| `make health` | Check if all services are healthy (with detailed output) | <1s |
 
 ### Monitoring & Debugging
 
@@ -179,6 +189,8 @@ Run `make help` to see all commands with descriptions.
 | `make test-api` | Run API tests only |
 | `make test-frontend` | Run frontend tests only |
 | `make lint` | Run linters on all code |
+| `make setup-vscode` | Setup VS Code workspace (extensions, debugger, settings) |
+| `make setup-hooks` | Install optional pre-commit hooks (runs lint + test before commits) |
 
 ### Cleanup
 
@@ -322,26 +334,35 @@ open http://localhost:3000
 open http://localhost:8000/health
 ```
 
-### Debugging the API (Node Inspector)
+### Optional: VS Code Integration
 
-**VS Code Setup:**
+**Setup VS Code workspace for optimal development experience:**
 
-1. Add to `.vscode/launch.json`:
-```json
-{
-  "type": "node",
-  "request": "attach",
-  "name": "Attach to API",
-  "port": 9229,
-  "address": "localhost",
-  "restart": true,
-  "sourceMaps": true
-}
+```bash
+# Install VS Code configs (opt-in)
+make setup-vscode
+
+# This creates:
+# - .vscode/extensions.json  - Recommended extensions
+# - .vscode/launch.json      - API debugger config (port 9229)
+# - .vscode/settings.json    - Format on save settings
 ```
 
-2. Set breakpoints in `api/src/`
-3. Start debugging in VS Code (F5)
-4. Make API requests, debugger will pause at breakpoints
+**What you get:**
+- **Recommended Extensions** - ESLint, Prettier, Docker, TypeScript
+- **One-Click Debugging** - Press F5 to attach to API container
+- **Auto-formatting** - Format on save with Prettier
+
+**Using the debugger:**
+
+1. Run `make setup-vscode` (one-time setup)
+2. Start services with `make dev`
+3. Press F5 in VS Code (or Run > Start Debugging)
+4. Select "Attach to API (Docker)"
+5. Set breakpoints in `api/src/`
+6. Make API requests - debugger will pause at breakpoints
+
+**Note:** This is completely optional. The `.vscode/` folder is gitignored so each developer can choose their own setup.
 
 ### Database Operations
 
@@ -396,9 +417,51 @@ env                    # See environment variables
 ls -la /app            # Explore filesystem
 ```
 
+### Optional: Pre-commit Hooks
+
+**Automatically run linting and tests before each commit:**
+
+```bash
+# Install hooks (opt-in)
+make setup-hooks
+
+# This will:
+# - Install husky and lint-staged
+# - Run 'make lint' before each commit
+# - Run 'make test' before each commit
+# - Block commits if either fails
+
+# To disable later:
+rm -rf .husky
+```
+
+**Why use pre-commit hooks?**
+- Catch issues before they reach CI
+- Maintain code quality standards
+- Prevent broken commits
+- Save time in code review
+
+**Note:** This is completely optional. Only install if you want automatic checks.
+
 ---
 
 ## Troubleshooting
+
+### First Step: Run Diagnostics
+
+**Before anything else, run:**
+```bash
+make doctor
+```
+
+This will check:
+- Docker installation and status
+- Port availability (3000, 5432, 6379, 8000, 9229)
+- `.env` file configuration
+- Disk space
+- Docker resources
+
+Each issue includes a specific fix command.
 
 ### Services Won't Start
 
@@ -406,23 +469,26 @@ ls -la /app            # Explore filesystem
 
 **Solutions:**
 ```bash
-# 1. Check Docker is running
+# 1. Run diagnostics
+make doctor
+
+# 2. Check Docker is running
 docker info
 
 # If Docker not running:
-# macOS: colima start
+# macOS: colima start or open -a Docker
 # Linux: sudo service docker start
 
-# 2. Check prerequisites
+# 3. Check prerequisites
 make prereqs
 
-# 3. View detailed logs to see what's failing
+# 4. View detailed logs to see what's failing
 make logs
 
-# 4. Check individual service health
-docker ps  # See container status
+# 5. Check individual service health
+make health
 
-# 5. Try fresh start (removes all data)
+# 6. Try fresh start (removes all data)
 make reset
 ```
 
