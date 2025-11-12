@@ -254,7 +254,7 @@ ps aux | grep nodemon
 2. **Try fresh start:** `make reset`
 3. **Verify Docker:** `docker info`
 4. **Check disk space:** `df -h`
-5. **Review documentation:** [README.md](README.md)
+5. **Review documentation:** [README.md](../README.md)
 6. **Create GitHub issue** with logs and error messages
 
 ### Useful debugging commands

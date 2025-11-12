@@ -229,12 +229,12 @@ make dev
 
 ### Detailed Guides
 
-- **[Development Workflow](DEVELOPMENT.md)** - Daily workflows, debugging, VS Code integration
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Deployment](DEPLOYMENT.md)** - Kubernetes (Minikube, GKE), Docker Compose, production checklists
-- **[Architecture](ARCHITECTURE.md)** - System design, tech stack, data flow
-- **[Contributing](CONTRIBUTING.md)** - How to add services, migrations, and follow code style
-- **[Support](SUPPORT.md)** - Resources and quick reference commands
+- **[Development Workflow](docs/DEVELOPMENT.md)** - Daily workflows, debugging, VS Code integration
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Deployment](docs/DEPLOYMENT.md)** - Kubernetes (Minikube, GKE), Docker Compose, production checklists
+- **[Architecture](docs/ARCHITECTURE.md)** - System design, tech stack, data flow
+- **[Contributing](docs/CONTRIBUTING.md)** - How to add services, migrations, and follow code style
+- **[Support](docs/SUPPORT.md)** - Resources and quick reference commands
 
 ---
 
