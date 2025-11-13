@@ -46,8 +46,14 @@ doctor: ## Diagnose environment and common issues
 	else \
 		for port in 3000 5432 6379 8000 9229; do \
 			if lsof -Pi :$$port -sTCP:LISTEN -t >/dev/null 2>&1 ; then \
-				PROC=$$(lsof -t -i:$$port | head -1); \
-				echo "$(RED)✗ Port $$port IN USE by PID $$PROC$(NC) - Run: kill $$PROC"; \
+				CONTAINER=$$(docker ps --format '{{.Names}}:{{.Ports}}' 2>/dev/null | grep ":$$port->" | cut -d: -f1 | head -1); \
+				if [ -n "$$CONTAINER" ] && echo "$$CONTAINER" | grep -q "wander_"; then \
+					echo "$(GREEN)✓ Port $$port in use by $$CONTAINER$(NC)"; \
+				else \
+					PROC=$$(lsof -t -i:$$port | head -1); \
+					PROC_NAME=$$(ps -p $$PROC -o comm= 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "unknown"); \
+					echo "$(RED)✗ Port $$port IN USE by $$PROC_NAME (PID $$PROC)$(NC) - Run: kill $$PROC"; \
+				fi; \
 			else \
 				echo "$(GREEN)✓ Port $$port available$(NC)"; \
 			fi; \

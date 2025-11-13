@@ -17,15 +17,24 @@ describe('App Component', () => {
   });
 
   it('renders the main heading', () => {
-    // Mock successful API response
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        message: 'Test API',
-        version: '1.0.0',
-        environment: 'test',
-      }),
-    });
+    // Mock all three API calls that App makes
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: 'Test API',
+          version: '1.0.0',
+          environment: 'test',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ users: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ posts: [] }),
+      });
 
     render(<App />);
     const heading = screen.getByText(/Wander Dev Environment/i);
@@ -39,19 +48,28 @@ describe('App Component', () => {
     );
 
     render(<App />);
-    expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading data from database.../i)).toBeInTheDocument();
   });
 
   it('displays API status when successfully loaded', async () => {
-    // Mock successful API response
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        message: 'Wander API is running',
-        version: '1.0.0',
-        environment: 'test',
-      }),
-    });
+    // Mock all three API calls that App makes
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: 'Wander API is running',
+          version: '1.0.0',
+          environment: 'test',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ users: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ posts: [] }),
+      });
 
     render(<App />);
 
@@ -77,15 +95,24 @@ describe('App Component', () => {
   });
 
   it('renders API health check link', async () => {
-    // Mock successful API response
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        message: 'Test',
-        version: '1.0.0',
-        environment: 'test',
-      }),
-    });
+    // Mock all three API calls that App makes
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: 'Test',
+          version: '1.0.0',
+          environment: 'test',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ users: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ posts: [] }),
+      });
 
     render(<App />);
 
