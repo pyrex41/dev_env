@@ -64,8 +64,16 @@ doctor: ## Diagnose environment and common issues
 	@[ -f .env ] && echo "$(GREEN)✓ .env file exists$(NC)" || echo "$(RED)✗ .env missing$(NC) - Run: cp .env.local.example .env"
 	@[ -f .env ] && ! grep -q "CHANGE_ME" .env && echo "$(GREEN)✓ No CHANGE_ME placeholders$(NC)" || echo "$(YELLOW)⚠ Found CHANGE_ME in .env$(NC) - Run: cp .env.local.example .env"
 	@echo ""
-	@echo "$(YELLOW)Disk Space:$(NC)"
-	@df -h / | awk 'NR==2 {print "  Available: " $$4 " (" $$5 " used)"}'
+	@echo "$(YELLOW)Disk Space (environment):$(NC)"
+	@df -h / | awk 'NR==2 {print "  Total: " $$2 " | Used: " $$3 " | Available: " $$4}'
+	@echo "$(YELLOW)Docker Disk Usage:$(NC)"
+	@docker system df 2>/dev/null | awk 'NR>1 && $$1!="Build" { \
+		if ($$1 == "Local") { \
+			printf "  %-14s %s\n", "Volumes:", $$5; \
+		} else { \
+			printf "  %-14s %s\n", $$1":", $$4; \
+		} \
+	}' || echo "  Unable to check"
 	@echo ""
 	@echo "$(YELLOW)Docker Resources:$(NC)"
 	@docker info 2>/dev/null | grep -E "(CPUs|Total Memory)" | sed 's/^/  /' || echo "  Unable to check (Docker not running)"
