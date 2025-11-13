@@ -227,47 +227,47 @@ setup-vscode: ## Setup VS Code workspace (extensions, debugger, settings)
 	@echo "$(CYAN)Setting up VS Code workspace...$(NC)"
 	@mkdir -p .vscode
 	@echo "$(YELLOW)Creating VS Code configuration files...$(NC)"
-	@cat > .vscode/extensions.json <<'EOF'
-{
-  "recommendations": [
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "ms-azuretools.vscode-docker",
-    "ms-vscode.vscode-typescript-next"
-  ]
-}
-EOF
-	@cat > .vscode/launch.json <<'EOF'
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "attach",
-      "name": "Attach to API (Docker)",
-      "port": 9229,
-      "restart": true,
-      "sourceMaps": true,
-      "skipFiles": ["<node_internals>/**"],
-      "localRoot": "$${workspaceFolder}/api",
-      "remoteRoot": "/app"
-    }
-  ]
-}
-EOF
-	@cat > .vscode/settings.json <<'EOF'
-{
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
-}
-EOF
+	@cat > .vscode/extensions.json <<-'EOF'
+	{
+	  "recommendations": [
+	    "dbaeumer.vscode-eslint",
+	    "esbenp.prettier-vscode",
+	    "ms-azuretools.vscode-docker",
+	    "ms-vscode.vscode-typescript-next"
+	  ]
+	}
+	EOF
+	@cat > .vscode/launch.json <<-'EOF'
+	{
+	  "version": "0.2.0",
+	  "configurations": [
+	    {
+	      "type": "node",
+	      "request": "attach",
+	      "name": "Attach to API (Docker)",
+	      "port": 9229,
+	      "restart": true,
+	      "sourceMaps": true,
+	      "skipFiles": ["<node_internals>/**"],
+	      "localRoot": "$${workspaceFolder}/api",
+	      "remoteRoot": "/app"
+	    }
+	  ]
+	}
+	EOF
+	@cat > .vscode/settings.json <<-'EOF'
+	{
+	  "editor.formatOnSave": true,
+	  "editor.defaultFormatter": "esbenp.prettier-vscode",
+	  "typescript.tsdk": "node_modules/typescript/lib",
+	  "[typescript]": {
+	    "editor.defaultFormatter": "esbenp.prettier-vscode"
+	  },
+	  "[typescriptreact]": {
+	    "editor.defaultFormatter": "esbenp.prettier-vscode"
+	  }
+	}
+	EOF
 	@echo ""
 	@echo "$(GREEN)✓ VS Code workspace configured!$(NC)"
 	@echo ""
